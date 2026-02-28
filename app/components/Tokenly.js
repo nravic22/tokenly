@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 // ─── CONFIG & MOCK DATA ────────────────────────────────────────────
 const COMPANY_VALUES = ["Innovation", "Teamwork", "Integrity", "Customer First", "Growth Mindset"];
@@ -53,15 +53,26 @@ function makeAvatar(name) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-// ─── THEME ─────────────────────────────────────────────────────────
-const T = {
-  bg: "#0B0E11", bgCard: "#141820", bgHover: "#1A2030", bgInput: "#0F1318",
-  border: "#1E2A3A", borderFocus: "#9945FF",
-  text: "#E8ECF1", textMuted: "#6B7A8D", textDim: "#4A5568",
-  accent: "#9945FF", accentGlow: "rgba(153,69,255,0.15)",
-  teal: "#14F195", tealGlow: "rgba(20,241,149,0.12)",
-  orange: "#F59E0B", red: "#EF4444",
-  gradient: "linear-gradient(135deg, #9945FF, #14F195)",
+// ─── THEMES ────────────────────────────────────────────────────────
+const THEMES = {
+  dark: {
+    bg: "#0B0E11", bgCard: "#141820", bgHover: "#1A2030", bgInput: "#0F1318",
+    border: "#1E2A3A", borderFocus: "#9945FF",
+    text: "#E8ECF1", textMuted: "#6B7A8D", textDim: "#4A5568",
+    accent: "#9945FF", accentGlow: "rgba(153,69,255,0.15)",
+    teal: "#14F195", tealGlow: "rgba(20,241,149,0.12)",
+    orange: "#F59E0B", red: "#EF4444",
+    gradient: "linear-gradient(135deg, #9945FF, #14F195)",
+  },
+  light: {
+    bg: "#F5F7FA", bgCard: "#FFFFFF", bgHover: "#EDF0F5", bgInput: "#F0F2F5",
+    border: "#D8DEE8", borderFocus: "#7C3AED",
+    text: "#1A202C", textMuted: "#5A6577", textDim: "#8896A6",
+    accent: "#7C3AED", accentGlow: "rgba(124,58,237,0.1)",
+    teal: "#059669", tealGlow: "rgba(5,150,105,0.08)",
+    orange: "#D97706", red: "#DC2626",
+    gradient: "linear-gradient(135deg, #7C3AED, #059669)",
+  },
 };
 
 // ─── SMALL COMPONENTS ──────────────────────────────────────────────
@@ -74,7 +85,7 @@ function Avatar({ userId, size = 40, name }) {
   );
 }
 
-function TokenBadge({ amount }) {
+function TokenBadge({ amount, T }) {
   return (
     <span style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"3px 10px", borderRadius:20, fontSize:"0.8rem", fontWeight:600, background:`${T.teal}18`, color:T.teal, border:`1px solid ${T.teal}30`, fontFamily:"monospace" }}>
       ◎ {amount} KUDOS
@@ -83,7 +94,7 @@ function TokenBadge({ amount }) {
 }
 
 // ─── AUTH SCREEN ───────────────────────────────────────────────────
-function AuthScreen({ onAuth, allUsers, setAllUsers }) {
+function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -243,7 +254,8 @@ function AuthScreen({ onAuth, allUsers, setAllUsers }) {
   const labelStyle = { display:"block", fontSize:"0.78rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"1.5px", color:T.textMuted, marginBottom:8 };
 
   return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:`radial-gradient(ellipse at 30% 20%, ${T.accentGlow} 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, ${T.tealGlow} 0%, transparent 50%), ${T.bg}`, padding:20 }}>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:`radial-gradient(ellipse at 30% 20%, ${T.accentGlow} 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, ${T.tealGlow} 0%, transparent 50%), ${T.bg}`, padding:20, position:"relative" }}>
+      <button onClick={setTheme} style={{ position:"absolute", top:20, right:20, width:40, height:40, borderRadius:12, border:`1px solid ${T.border}`, background:T.bgCard, color:T.text, cursor:"pointer", fontSize:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s", zIndex:10 }} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</button>
       <div style={{ width:"100%", maxWidth:440, background:T.bgCard, borderRadius:20, border:`1px solid ${T.border}`, padding:"48px 40px", position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:T.gradient }} />
         <div style={{ textAlign:"center", marginBottom:8 }}>
@@ -351,7 +363,7 @@ function AuthScreen({ onAuth, allUsers, setAllUsers }) {
 }
 
 // ─── RECOGNITION CARD ──────────────────────────────────────────────
-function RecognitionCard({ recog, currentUser, allUsers, onReact }) {
+function RecognitionCard({ recog, currentUser, allUsers, onReact, T }) {
   const from = allUsers.find(u => u.id === recog.from);
   const to = allUsers.find(u => u.id === recog.to);
   const [showComments, setShowComments] = useState(false);
@@ -371,7 +383,7 @@ function RecognitionCard({ recog, currentUser, allUsers, onReact }) {
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:4 }}>
             <span style={{ fontSize:"0.76rem", color:T.textDim }}>{timeAgo(recog.timestamp)}</span>
-            <TokenBadge amount={recog.amount} />
+            <TokenBadge amount={recog.amount} T={T} />
           </div>
         </div>
       </div>
@@ -426,7 +438,7 @@ function RecognitionCard({ recog, currentUser, allUsers, onReact }) {
 }
 
 // ─── GIVE RECOGNITION MODAL ────────────────────────────────────────
-function GiveRecognitionModal({ currentUser, allUsers, onClose, onSend }) {
+function GiveRecognitionModal({ currentUser, allUsers, onClose, onSend, T }) {
   const [to, setTo] = useState("");
   const [amount, setAmount] = useState(50);
   const [message, setMessage] = useState("");
@@ -509,7 +521,7 @@ function GiveRecognitionModal({ currentUser, allUsers, onClose, onSend }) {
 }
 
 // ─── REDEEM MODAL ──────────────────────────────────────────────────
-function RedeemModal({ reward, balance, onClose, onRedeem }) {
+function RedeemModal({ reward, balance, onClose, onRedeem, T }) {
   const [redeeming, setRedeeming] = useState(false);
   const canAfford = balance >= reward.cost;
   const handleRedeem = async () => { setRedeeming(true); await new Promise(r => setTimeout(r, 1500)); onRedeem(reward); setRedeeming(false); };
@@ -544,6 +556,7 @@ function RedeemModal({ reward, balance, onClose, onRedeem }) {
 // ═══════════════════════════════════════════════════════════════════
 export default function Tokenly() {
   const [user, setUser] = useState(null);
+  const [sessionReady, setSessionReady] = useState(false);
   const [allUsers, setAllUsers] = useState([...DEMO_USERS]);
   const [page, setPage] = useState("feed");
   const [recognitions, setRecognitions] = useState(INITIAL_RECOGNITIONS);
@@ -553,6 +566,37 @@ export default function Tokenly() {
   const [allowanceLeft, setAllowanceLeft] = useState(MONTHLY_ALLOWANCE);
   const [toastMsg, setToastMsg] = useState("");
   const [rewardFilter, setRewardFilter] = useState("All");
+  const [theme, setTheme] = useState('dark');
+  const T = THEMES[theme];
+
+  useEffect(() => {
+    const saved = localStorage.getItem('tokenly-theme');
+    if (saved && saved !== theme) setTheme(saved);
+  }, []);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem('tokenly-user');
+    if (saved) {
+      try { setUser(JSON.parse(saved)); } catch {}
+    }
+    setSessionReady(true);
+  }, []);
+
+  const loginUser = (u) => {
+    setUser(u);
+    sessionStorage.setItem('tokenly-user', JSON.stringify(u));
+  };
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('tokenly-theme', next);
+  };
+
+  useEffect(() => {
+    document.body.style.background = T.bg;
+    document.body.style.color = T.text;
+  }, [T.bg, T.text]);
 
   const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(""), 3000); };
 
@@ -591,7 +635,8 @@ export default function Tokenly() {
     return allUsers.map(u => ({ ...u, received: received[u.id] || 0, given: given[u.id] || 0, total: (received[u.id] || 0) + (given[u.id] || 0) })).sort((a, b) => b.received - a.received);
   }, [recognitions, allUsers]);
 
-  if (!user) return <AuthScreen onAuth={setUser} allUsers={allUsers} setAllUsers={setAllUsers} />;
+  if (!sessionReady) return null;
+  if (!user) return <AuthScreen onAuth={loginUser} allUsers={allUsers} setAllUsers={setAllUsers} T={T} theme={theme} setTheme={toggleTheme} />;
 
   const rewardCategories = ["All", ...new Set(REWARDS_CATALOG.map(r => r.category))];
   const filteredRewards = rewardFilter === "All" ? REWARDS_CATALOG : REWARDS_CATALOG.filter(r => r.category === rewardFilter);
@@ -607,6 +652,10 @@ export default function Tokenly() {
   ];
 
   const statCard = { background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:14, padding:20, textAlign:"center", flex:1 };
+
+  const themeToggleBtn = (
+    <button onClick={toggleTheme} style={{ width:40, height:40, borderRadius:12, border:`1px solid ${T.border}`, background:T.bgCard, color:T.text, cursor:"pointer", fontSize:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s", flexShrink:0 }} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</button>
+  );
 
   return (
     <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"'DM Sans', -apple-system, sans-serif", overflowX:"hidden" }}>
@@ -648,7 +697,7 @@ export default function Tokenly() {
                 </div>
               </div>
             </div>
-            <button onClick={() => setUser(null)} style={{ width:"100%", marginTop:10, padding:8, background:"transparent", border:`1px solid ${T.border}`, borderRadius:8, color:T.textMuted, cursor:"pointer", fontSize:"0.78rem", fontFamily:"inherit" }}>Sign Out</button>
+            <button onClick={() => { setUser(null); sessionStorage.removeItem('tokenly-user'); }} style={{ width:"100%", marginTop:10, padding:8, background:"transparent", border:`1px solid ${T.border}`, borderRadius:8, color:T.textMuted, cursor:"pointer", fontSize:"0.78rem", fontFamily:"inherit" }}>Sign Out</button>
           </div>
         </aside>
 
@@ -668,11 +717,14 @@ export default function Tokenly() {
           {/* FEED */}
           {page === "feed" && (
             <div style={{ animation:"fadeUp 0.4s ease" }}>
-              <div className="feed-header" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:16 }}>
                 <div>
                   <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, letterSpacing:"-0.5px" }}>Recognition Feed</h1>
                   <p style={{ color:T.textMuted, fontSize:"0.86rem", marginTop:4 }}>See how your team lifts each other up</p>
                 </div>
+                {themeToggleBtn}
+              </div>
+              <div className="feed-header" style={{ display:"flex", justifyContent:"flex-end", marginBottom:24 }}>
                 <button onClick={() => setShowGiveModal(true)} style={{ padding:"12px 24px", background:T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:8, whiteSpace:"nowrap" }}><span>+</span> Give Kudos</button>
               </div>
               <div className="stat-cards" style={{ display:"flex", gap:12, marginBottom:28 }}>
@@ -683,15 +735,20 @@ export default function Tokenly() {
                   </div>
                 ))}
               </div>
-              {recognitions.map(r => <RecognitionCard key={r.id} recog={r} currentUser={user} allUsers={allUsers} onReact={handleReact} />)}
+              {recognitions.map(r => <RecognitionCard key={r.id} recog={r} currentUser={user} allUsers={allUsers} onReact={handleReact} T={T} />)}
             </div>
           )}
 
           {/* REWARDS */}
           {page === "rewards" && (
             <div style={{ animation:"fadeUp 0.4s ease" }}>
-              <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, marginBottom:4 }}>Rewards Catalog</h1>
-              <p style={{ color:T.textMuted, fontSize:"0.86rem", marginBottom:24 }}>Redeem your KUDOS tokens for awesome rewards</p>
+              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24 }}>
+                <div>
+                  <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, marginBottom:4 }}>Rewards Catalog</h1>
+                  <p style={{ color:T.textMuted, fontSize:"0.86rem" }}>Redeem your KUDOS tokens for awesome rewards</p>
+                </div>
+                {themeToggleBtn}
+              </div>
               <div className="rewards-filter" style={{ display:"flex", alignItems:"center", gap:8, marginBottom:24, flexWrap:"wrap" }}>
                 <span style={{ padding:"6px 14px", borderRadius:20, fontSize:"0.84rem", fontWeight:600, background:`${T.teal}18`, color:T.teal, border:`1px solid ${T.teal}30`, fontFamily:"monospace" }}>◎ {balance} available</span>
                 <div style={{ flex:1 }} />
@@ -718,18 +775,23 @@ export default function Tokenly() {
           {/* LEADERBOARD */}
           {page === "leaderboard" && (
             <div style={{ animation:"fadeUp 0.4s ease" }}>
-              <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, marginBottom:4 }}>Leaderboard</h1>
-              <p style={{ color:T.textMuted, fontSize:"0.86rem", marginBottom:24 }}>Top recognized teammates this month</p>
+              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24 }}>
+                <div>
+                  <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, marginBottom:4 }}>Leaderboard</h1>
+                  <p style={{ color:T.textMuted, fontSize:"0.86rem" }}>Top recognized teammates this month</p>
+                </div>
+                {themeToggleBtn}
+              </div>
               <div className="leaderboard-podium" style={{ display:"flex", gap:16, marginBottom:32, justifyContent:"center", alignItems:"flex-end" }}>
                 {[1, 0, 2].map((idx, pos) => {
                   const u = leaderboard[idx]; if (!u) return null;
                   const heights = [200, 160, 140]; const medals = ["🥇", "🥈", "🥉"];
                   return (
-                    <div key={u.id} style={{ textAlign:"center", width:160, minWidth:0 }}>
-                      <Avatar userId={u.id} size={pos === 1 ? 56 : 48} name={u.name} />
+                    <div key={u.id} style={{ display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", width:160, minWidth:0 }}>
+                      <Avatar userId={u.id} size={idx === 0 ? 56 : 48} name={u.name} />
                       <div style={{ fontWeight:600, fontSize:"0.9rem", marginTop:8 }}>{u.name}</div>
                       <div style={{ fontSize:"0.76rem", color:T.textMuted }}>{u.role}</div>
-                      <div style={{ background: pos === 1 ? `linear-gradient(180deg, ${T.accent}30, ${T.accent}08)` : T.bgCard, border:`1px solid ${T.border}`, borderRadius:"12px 12px 0 0", marginTop:12, height:heights[pos], display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4 }}>
+                      <div style={{ background: idx === 0 ? `linear-gradient(180deg, ${T.accent}30, ${T.accent}08)` : T.bgCard, border:`1px solid ${T.border}`, borderRadius:"12px 12px 0 0", marginTop:12, height:heights[idx], display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4, alignSelf:"stretch" }}>
                         <span style={{ fontSize:"2rem" }}>{medals[idx]}</span>
                         <div style={{ fontFamily:"monospace", fontSize:"1.2rem", color:T.teal }}>◎ {u.received}</div>
                         <div style={{ fontSize:"0.68rem", color:T.textDim, textTransform:"uppercase", letterSpacing:"1px" }}>Received</div>
@@ -764,7 +826,10 @@ export default function Tokenly() {
           {/* PROFILE */}
           {page === "profile" && (
             <div style={{ animation:"fadeUp 0.4s ease" }}>
-              <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, marginBottom:24 }}>My Profile</h1>
+              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24 }}>
+                <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400 }}>My Profile</h1>
+                {themeToggleBtn}
+              </div>
               <div className="profile-header" style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16, padding:24, display:"flex", gap:24, alignItems:"center", marginBottom:16, flexWrap:"wrap" }}>
                 <Avatar userId={user.id} size={72} name={user.name} />
                 <div style={{ flex:1, minWidth:0 }}>
@@ -794,7 +859,7 @@ export default function Tokenly() {
                       <div style={{ fontSize:"0.78rem", color:T.textMuted, marginTop:2, overflow:"hidden", textOverflow:"ellipsis" }}>{r.message.substring(0, 80)}...</div>
                     </div>
                     <div className="activity-meta" style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <TokenBadge amount={r.amount} />
+                      <TokenBadge amount={r.amount} T={T} />
                       <span style={{ fontSize:"0.76rem", color:T.textDim, whiteSpace:"nowrap" }}>{timeAgo(r.timestamp)}</span>
                     </div>
                   </div>
@@ -819,8 +884,8 @@ export default function Tokenly() {
         </main>
       </div>
 
-      {showGiveModal && <GiveRecognitionModal currentUser={user} allUsers={allUsers} onClose={() => setShowGiveModal(false)} onSend={handleSendRecognition} />}
-      {redeemReward && <RedeemModal reward={redeemReward} balance={balance} onClose={() => setRedeemReward(null)} onRedeem={handleRedeem} />}
+      {showGiveModal && <GiveRecognitionModal currentUser={user} allUsers={allUsers} onClose={() => setShowGiveModal(false)} onSend={handleSendRecognition} T={T} />}
+      {redeemReward && <RedeemModal reward={redeemReward} balance={balance} onClose={() => setRedeemReward(null)} onRedeem={handleRedeem} T={T} />}
     </div>
   );
 }

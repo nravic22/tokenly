@@ -5,11 +5,10 @@
 }
 
 body {
-  background: #0B0E11;
-  color: #E8ECF1;
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s, color 0.3s;
 }
 
 ::-webkit-scrollbar {
@@ -67,18 +66,55 @@ textarea:focus {
   }
   .stat-cards {
     flex-wrap: wrap !important;
+    gap: 8px !important;
   }
   .stat-cards > div {
-    flex: 1 1 calc(50% - 6px) !important;
+    flex: 1 1 calc(50% - 4px) !important;
     min-width: 0 !important;
+    padding: 14px 10px !important;
+  }
+  .stat-cards > div > div:first-child {
+    font-size: 1.2rem !important;
+  }
+  .stat-cards > div > div:last-child {
+    font-size: 0.62rem !important;
+    letter-spacing: 1px !important;
   }
   .leaderboard-podium {
-    flex-wrap: wrap !important;
-    gap: 12px !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    align-items: flex-end !important;
   }
   .leaderboard-podium > div {
-    width: calc(33.33% - 8px) !important;
-    min-width: 90px !important;
+    width: calc(33.33% - 6px) !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  .leaderboard-podium > div > div:first-of-type {
+    font-size: 0.78rem !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .leaderboard-podium > div > div:nth-of-type(2) {
+    font-size: 0.68rem !important;
+  }
+  .leaderboard-podium > div > div:last-child {
+    height: auto !important;
+    min-height: 80px !important;
+    padding: 12px 4px !important;
+    width: 100% !important;
+  }
+  .leaderboard-podium > div > div:last-child > span {
+    font-size: 1.4rem !important;
+  }
+  .leaderboard-podium > div > div:last-child > div:first-of-type {
+    font-size: 0.9rem !important;
+  }
+  .leaderboard-podium > div > div:last-child > div:last-child {
+    font-size: 0.58rem !important;
   }
   .leaderboard-table-header,
   .leaderboard-table-row {
