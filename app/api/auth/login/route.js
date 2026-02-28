@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
@@ -23,8 +23,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    // 2. Fetch user profile
-    const { data: profile, error: profileError } = await supabase
+    // 2. Fetch user profile (use admin client to bypass RLS)
+    const db = supabaseAdmin || supabase;
+    const { data: profile, error: profileError } = await db
       .from('profiles')
       .select('*')
       .eq('id', authData.user.id)
@@ -46,7 +47,7 @@ export async function POST(request) {
         allowance: 500,
       };
 
-      const { data: newProfile } = await supabase
+      const { data: newProfile } = await db
         .from('profiles')
         .upsert(fallbackProfile)
         .select()

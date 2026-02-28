@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
@@ -26,10 +26,11 @@ export async function POST(request) {
       return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    // 2. Insert user profile into profiles table
+    // 2. Insert user profile into profiles table (use admin client to bypass RLS)
+    const db = supabaseAdmin || supabase;
     const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await db
       .from('profiles')
       .insert({
         id: authData.user.id,
