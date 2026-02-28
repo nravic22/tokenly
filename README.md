@@ -11,7 +11,9 @@ A **Bonusly-like** peer-to-peer employee recognition platform powered by **Solan
 - **Rewards Catalog** — Redeem tokens for gift cards, swag, crypto, experiences
 - **Leaderboard & Analytics** — Track top contributors and recognition trends
 - **Dual Authentication** — Email/password with verification + Phantom wallet connect
+- **Session Persistence** — Login survives page refresh via `sessionStorage`; auto-clears on tab close
 - **Company Values** — Tag recognitions with organizational values
+- **Mobile Responsive** — Adaptive layout with bottom nav and mobile sign-out on profile page
 
 ## Demo Accounts
 
@@ -77,12 +79,16 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ```
 tokenly/
 ├── app/
+│   ├── api/
+│   │   └── auth/
+│   │       ├── login/         # POST /api/auth/login
+│   │       └── signup/        # POST /api/auth/signup
 │   ├── components/
-│   │   └── Tokenly.js        # Main app component
-│   ├── globals.css            # Global styles
-│   ├── layout.js              # Root layout + metadata
-│   └── page.js                # Home page entry
-├── public/                    # Static assets
+│   │   └── Tokenly.js         # Main app component
+│   ├── globals.css             # Global styles + responsive breakpoints
+│   ├── layout.js               # Root layout + metadata
+│   └── page.js                 # Home page entry
+├── public/                     # Static assets
 ├── .gitignore
 ├── next.config.js
 ├── package.json
@@ -91,14 +97,15 @@ tokenly/
 
 ## Roadmap
 
-- [ ] Supabase integration for real auth & database
+- [x] Supabase-backed auth API routes (login & signup)
+- [x] Session persistence across page refresh
+- [x] Mobile responsive layout with bottom nav and profile sign-out
 - [ ] Solana wallet adapter (@solana/wallet-adapter-react)
 - [ ] Real SPL token transfers on devnet
 - [ ] The Graph integration for on-chain data indexing
 - [ ] Team/department management
 - [ ] Admin dashboard
 - [ ] Email notifications
-- [ ] Mobile responsive improvements
 
 ## License
 
