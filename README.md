@@ -34,7 +34,7 @@ A **Bonusly-like** peer-to-peer employee recognition platform powered by **Solan
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/tokenly.git
+git clone https://github.com/nravic22/tokenly.git
 cd tokenly
 
 # Install dependencies
@@ -50,7 +50,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Option 1: One-Click Deploy (Easiest)
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/tokenly)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/nravic22/tokenly)
 
 ### Option 2: Manual Deploy
 
@@ -78,11 +78,11 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 tokenly/
 ├── app/
 │   ├── components/
-│   │   └── Tokenly.js    # Main app component
-│   ├── globals.css           # Global styles
-│   ├── layout.js             # Root layout + metadata
-│   └── page.js               # Home page entry
-├── public/                   # Static assets
+│   │   └── Tokenly.js        # Main app component
+│   ├── globals.css            # Global styles
+│   ├── layout.js              # Root layout + metadata
+│   └── page.js                # Home page entry
+├── public/                    # Static assets
 ├── .gitignore
 ├── next.config.js
 ├── package.json

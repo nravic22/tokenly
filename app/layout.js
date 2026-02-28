@@ -1,11 +1,11 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'KudosChain — Crypto Recognition Platform',
+  title: 'Tokenly — Crypto Recognition Platform',
   description: 'Recognize your teammates and reward them with KUDOS tokens on Solana. A Bonusly-like platform powered by blockchain.',
-  keywords: 'kudos, recognition, solana, blockchain, employee rewards, crypto, SPL tokens',
+  keywords: 'tokenly, recognition, solana, blockchain, employee rewards, crypto, SPL tokens',
   openGraph: {
-    title: 'KudosChain — Crypto Recognition Platform',
+    title: 'Tokenly — Crypto Recognition Platform',
     description: 'Recognize your teammates and reward them with KUDOS tokens on Solana.',
     type: 'website',
   },

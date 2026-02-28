@@ -1,5 +1,5 @@
 {
-  "name": "kudoschain",
+  "name": "tokenly",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
     "next": "14.2.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

@@ -1,7 +1,7 @@
 'use client';
 
-import KudosChain from './components/KudosChain';
+import Tokenly from './components/Tokenly';
 
 export default function Home() {
-  return <KudosChain />;
+  return <Tokenly />;
 }
