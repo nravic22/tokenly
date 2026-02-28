@@ -64,6 +64,9 @@ textarea:focus {
   .mobile-nav {
     display: flex !important;
   }
+  .mobile-sign-out {
+    display: block !important;
+  }
   .stat-cards {
     flex-wrap: wrap !important;
     gap: 8px !important;

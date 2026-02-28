@@ -879,6 +879,7 @@ export default function Tokenly() {
                   ))}
                 </div>
               </div>
+              <button className="mobile-sign-out" onClick={() => { setUser(null); sessionStorage.removeItem('tokenly-user'); }} style={{ display:"none", width:"100%", marginTop:28, marginBottom:60, padding:"14px 0", background:"transparent", border:`1px solid ${T.border}`, borderRadius:12, color:T.textMuted, cursor:"pointer", fontSize:"0.88rem", fontFamily:"inherit" }}>Sign Out</button>
             </div>
           )}
         </main>
