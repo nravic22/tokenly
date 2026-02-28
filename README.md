@@ -1,8 +1,8 @@
-# ◎ KudosChain — Crypto Recognition Platform
+# ◎ Tokenly — Crypto Recognition Platform
 
 A **Bonusly-like** peer-to-peer employee recognition platform powered by **Solana SPL tokens**. Built with **Next.js** and ready to deploy on **Vercel**.
 
-![KudosChain](https://img.shields.io/badge/Solana-SPL_Tokens-14F195?style=flat&logo=solana) ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat&logo=next.js) ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000?style=flat&logo=vercel)
+![Tokenly](https://img.shields.io/badge/Solana-SPL_Tokens-14F195?style=flat&logo=solana) ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat&logo=next.js) ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000?style=flat&logo=vercel)
 
 ## Features
 
@@ -34,8 +34,8 @@ A **Bonusly-like** peer-to-peer employee recognition platform powered by **Solan
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/kudoschain.git
-cd kudoschain
+git clone https://github.com/YOUR_USERNAME/tokenly.git
+cd tokenly
 
 # Install dependencies
 npm install
@@ -50,15 +50,15 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Option 1: One-Click Deploy (Easiest)
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/kudoschain)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_USERNAME/tokenly)
 
 ### Option 2: Manual Deploy
 
 1. Push this repo to GitHub
 2. Go to [vercel.com](https://vercel.com) → Sign up with GitHub
-3. Click **"Add New Project"** → Import your `kudoschain` repo
+3. Click **"Add New Project"** → Import your `tokenly` repo
 4. Click **"Deploy"** — Vercel auto-detects Next.js
-5. Your site is live at `https://kudoschain.vercel.app`
+5. Your site is live at `https://tokenly.vercel.app`
 
 ## Tech Stack
 
@@ -75,10 +75,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## Project Structure
 
 ```
-kudoschain/
+tokenly/
 ├── app/
 │   ├── components/
-│   │   └── KudosChain.js    # Main app component
+│   │   └── Tokenly.js    # Main app component
 │   ├── globals.css           # Global styles
 │   ├── layout.js             # Root layout + metadata
 │   └── page.js               # Home page entry
