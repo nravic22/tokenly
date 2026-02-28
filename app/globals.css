@@ -60,5 +60,61 @@ textarea:focus {
   .main-content {
     margin-left: 0 !important;
     padding: 16px !important;
+    max-width: 100% !important;
+  }
+  .mobile-nav {
+    display: flex !important;
+  }
+  .stat-cards {
+    flex-wrap: wrap !important;
+  }
+  .stat-cards > div {
+    flex: 1 1 calc(50% - 6px) !important;
+    min-width: 0 !important;
+  }
+  .leaderboard-podium {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .leaderboard-podium > div {
+    width: calc(33.33% - 8px) !important;
+    min-width: 90px !important;
+  }
+  .leaderboard-table-header,
+  .leaderboard-table-row {
+    grid-template-columns: 28px 1fr 60px 60px 60px !important;
+    padding: 10px 12px !important;
+    font-size: 0.78rem !important;
+  }
+  .profile-header {
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: 12px !important;
+  }
+  .profile-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .profile-activity-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .profile-activity-row > .activity-meta {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+  }
+  .wallet-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .feed-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .feed-header button {
+    width: 100% !important;
+  }
+  .rewards-filter {
+    justify-content: flex-start !important;
   }
 }

@@ -609,7 +609,7 @@ export default function Tokenly() {
   const statCard = { background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:14, padding:20, textAlign:"center", flex:1 };
 
   return (
-    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"'DM Sans', -apple-system, sans-serif" }}>
+    <div style={{ minHeight:"100vh", background:T.bg, color:T.text, fontFamily:"'DM Sans', -apple-system, sans-serif", overflowX:"hidden" }}>
       {toastMsg && (
         <div style={{ position:"fixed", top:20, right:20, background:T.bgCard, border:`1px solid ${T.teal}40`, borderRadius:12, padding:"14px 20px", zIndex:2000, fontSize:"0.88rem", color:T.teal, boxShadow:"0 8px 32px rgba(0,0,0,0.4)", animation:"slideIn 0.3s ease" }}>{toastMsg}</div>
       )}
@@ -652,20 +652,30 @@ export default function Tokenly() {
           </div>
         </aside>
 
+        {/* MOBILE NAV */}
+        <nav className="mobile-nav" style={{ display:"none", position:"fixed", bottom:0, left:0, right:0, background:T.bgCard, borderTop:`1px solid ${T.border}`, zIndex:100, justifyContent:"space-around", padding:"8px 0" }}>
+          {navItems.filter(n => n.id !== "give").map(item => (
+            <div key={item.id} onClick={() => item.id === "give" ? setShowGiveModal(true) : setPage(item.id)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, fontSize:"0.62rem", color: page === item.id ? T.accent : T.textMuted, cursor:"pointer", padding:"4px 8px" }}>
+              <span style={{ fontSize:"1.2rem" }}>{item.icon}</span>
+              {item.label.split(" ")[0]}
+            </div>
+          ))}
+        </nav>
+
         {/* MAIN */}
-        <main className="main-content" style={{ flex:1, marginLeft:240, padding:"24px 32px", maxWidth:900 }}>
+        <main className="main-content" style={{ flex:1, marginLeft:240, padding:"24px 32px", maxWidth:900, paddingBottom:80, overflow:"hidden" }}>
 
           {/* FEED */}
           {page === "feed" && (
             <div style={{ animation:"fadeUp 0.4s ease" }}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+              <div className="feed-header" style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
                 <div>
                   <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, letterSpacing:"-0.5px" }}>Recognition Feed</h1>
                   <p style={{ color:T.textMuted, fontSize:"0.86rem", marginTop:4 }}>See how your team lifts each other up</p>
                 </div>
-                <button onClick={() => setShowGiveModal(true)} style={{ padding:"12px 24px", background:T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:8 }}><span>+</span> Give Kudos</button>
+                <button onClick={() => setShowGiveModal(true)} style={{ padding:"12px 24px", background:T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:8, whiteSpace:"nowrap" }}><span>+</span> Give Kudos</button>
               </div>
-              <div style={{ display:"flex", gap:12, marginBottom:28 }}>
+              <div className="stat-cards" style={{ display:"flex", gap:12, marginBottom:28 }}>
                 {[{ label:"Your Balance", value:`◎ ${balance}`, color:T.teal }, { label:"Received", value:`◎ ${myReceived}`, color:T.accent }, { label:"Given This Month", value:`◎ ${myGiven}`, color:T.orange }, { label:"Allowance Left", value:`◎ ${allowanceLeft}`, color:T.text }].map((s, i) => (
                   <div key={i} style={statCard}>
                     <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.5rem", color:s.color, letterSpacing:"-1px" }}>{s.value}</div>
@@ -682,14 +692,14 @@ export default function Tokenly() {
             <div style={{ animation:"fadeUp 0.4s ease" }}>
               <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, marginBottom:4 }}>Rewards Catalog</h1>
               <p style={{ color:T.textMuted, fontSize:"0.86rem", marginBottom:24 }}>Redeem your KUDOS tokens for awesome rewards</p>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:24, flexWrap:"wrap" }}>
+              <div className="rewards-filter" style={{ display:"flex", alignItems:"center", gap:8, marginBottom:24, flexWrap:"wrap" }}>
                 <span style={{ padding:"6px 14px", borderRadius:20, fontSize:"0.84rem", fontWeight:600, background:`${T.teal}18`, color:T.teal, border:`1px solid ${T.teal}30`, fontFamily:"monospace" }}>◎ {balance} available</span>
                 <div style={{ flex:1 }} />
                 {rewardCategories.map(cat => (
                   <button key={cat} onClick={() => setRewardFilter(cat)} style={{ padding:"6px 14px", borderRadius:20, fontSize:"0.78rem", fontWeight:500, border: rewardFilter===cat ? `1px solid ${T.accent}` : `1px solid ${T.border}`, background: rewardFilter===cat ? T.accentGlow : "transparent", color: rewardFilter===cat ? T.accent : T.textMuted, cursor:"pointer", fontFamily:"inherit" }}>{cat}</button>
                 ))}
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:16 }}>
+              <div className="rewards-grid" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(min(220px, 100%), 1fr))", gap:16 }}>
                 {filteredRewards.map(reward => (
                   <div key={reward.id} onClick={() => setRedeemReward(reward)} style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16, padding:"28px 20px", textAlign:"center", cursor:"pointer", transition:"all 0.2s" }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = T.accent + "40"; e.currentTarget.style.transform = "translateY(-2px)"; }}
@@ -710,12 +720,12 @@ export default function Tokenly() {
             <div style={{ animation:"fadeUp 0.4s ease" }}>
               <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, marginBottom:4 }}>Leaderboard</h1>
               <p style={{ color:T.textMuted, fontSize:"0.86rem", marginBottom:24 }}>Top recognized teammates this month</p>
-              <div style={{ display:"flex", gap:16, marginBottom:32, justifyContent:"center", alignItems:"flex-end" }}>
+              <div className="leaderboard-podium" style={{ display:"flex", gap:16, marginBottom:32, justifyContent:"center", alignItems:"flex-end" }}>
                 {[1, 0, 2].map((idx, pos) => {
                   const u = leaderboard[idx]; if (!u) return null;
                   const heights = [200, 160, 140]; const medals = ["🥇", "🥈", "🥉"];
                   return (
-                    <div key={u.id} style={{ textAlign:"center", width:160 }}>
+                    <div key={u.id} style={{ textAlign:"center", width:160, minWidth:0 }}>
                       <Avatar userId={u.id} size={pos === 1 ? 56 : 48} name={u.name} />
                       <div style={{ fontWeight:600, fontSize:"0.9rem", marginTop:8 }}>{u.name}</div>
                       <div style={{ fontSize:"0.76rem", color:T.textMuted }}>{u.role}</div>
@@ -729,16 +739,16 @@ export default function Tokenly() {
                 })}
               </div>
               <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16, overflow:"hidden" }}>
-                <div style={{ display:"grid", gridTemplateColumns:"40px 1fr 100px 100px 100px", padding:"12px 20px", fontSize:"0.7rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"1.5px", color:T.textDim, borderBottom:`1px solid ${T.border}` }}>
-                  <span>#</span><span>Team Member</span><span style={{ textAlign:"right" }}>Received</span><span style={{ textAlign:"right" }}>Given</span><span style={{ textAlign:"right" }}>Total</span>
+                <div className="leaderboard-table-header" style={{ display:"grid", gridTemplateColumns:"40px 1fr 100px 100px 100px", padding:"12px 20px", fontSize:"0.7rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"1.5px", color:T.textDim, borderBottom:`1px solid ${T.border}` }}>
+                  <span>#</span><span>Member</span><span style={{ textAlign:"right" }}>Received</span><span style={{ textAlign:"right" }}>Given</span><span style={{ textAlign:"right" }}>Total</span>
                 </div>
                 {leaderboard.map((u, i) => (
-                  <div key={u.id} style={{ display:"grid", gridTemplateColumns:"40px 1fr 100px 100px 100px", padding:"14px 20px", alignItems:"center", borderBottom:`1px solid ${T.border}`, background: u.id === user.id ? T.accentGlow : "transparent" }}>
+                  <div key={u.id} className="leaderboard-table-row" style={{ display:"grid", gridTemplateColumns:"40px 1fr 100px 100px 100px", padding:"14px 20px", alignItems:"center", borderBottom:`1px solid ${T.border}`, background: u.id === user.id ? T.accentGlow : "transparent" }}>
                     <span style={{ fontWeight:700, color: i < 3 ? T.accent : T.textDim }}>{i + 1}</span>
-                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
                       <Avatar userId={u.id} size={32} name={u.name} />
-                      <div>
-                        <div style={{ fontSize:"0.88rem", fontWeight:500 }}>{u.name} {u.id === user.id && <span style={{ fontSize:"0.7rem", color:T.accent }}>(you)</span>}</div>
+                      <div style={{ minWidth:0 }}>
+                        <div style={{ fontSize:"0.88rem", fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{u.name} {u.id === user.id && <span style={{ fontSize:"0.7rem", color:T.accent }}>(you)</span>}</div>
                         <div style={{ fontSize:"0.74rem", color:T.textMuted }}>{u.dept}</div>
                       </div>
                     </div>
@@ -755,16 +765,16 @@ export default function Tokenly() {
           {page === "profile" && (
             <div style={{ animation:"fadeUp 0.4s ease" }}>
               <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, marginBottom:24 }}>My Profile</h1>
-              <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16, padding:24, display:"flex", gap:24, alignItems:"center", marginBottom:16 }}>
+              <div className="profile-header" style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16, padding:24, display:"flex", gap:24, alignItems:"center", marginBottom:16, flexWrap:"wrap" }}>
                 <Avatar userId={user.id} size={72} name={user.name} />
-                <div style={{ flex:1 }}>
+                <div style={{ flex:1, minWidth:0 }}>
                   <h2 style={{ fontSize:"1.3rem", fontWeight:600 }}>{user.name}</h2>
                   <div style={{ fontSize:"0.88rem", color:T.textMuted }}>{user.role} · {user.dept || "General"}</div>
-                  <div style={{ fontSize:"0.78rem", color:T.textDim, fontFamily:"monospace", marginTop:6 }}>Wallet: {user.walletAddress || "Not connected"}</div>
+                  <div style={{ fontSize:"0.78rem", color:T.textDim, fontFamily:"monospace", marginTop:6, wordBreak:"break-all" }}>Wallet: {user.walletAddress || "Not connected"}</div>
                 </div>
                 <span style={{ padding:"6px 16px", borderRadius:20, fontSize:"0.9rem", fontWeight:600, background:`${T.teal}18`, color:T.teal, border:`1px solid ${T.teal}30`, fontFamily:"monospace" }}>◎ {balance} KUDOS</span>
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12, marginBottom:28 }}>
+              <div className="profile-stats" style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12, marginBottom:28 }}>
                 {[{ label:"Total Received", value:`◎ ${myReceived}`, color:T.teal }, { label:"Total Given", value:`◎ ${myGiven}`, color:T.orange }, { label:"Sent", value:recognitions.filter(r => r.from === user.id).length, color:T.accent }, { label:"Got", value:recognitions.filter(r => r.to === user.id).length, color:T.text }].map((s, i) => (
                   <div key={i} style={statCard}>
                     <div style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.6rem", color:s.color }}>{s.value}</div>
@@ -777,20 +787,22 @@ export default function Tokenly() {
                 const isGiver = r.from === user.id;
                 const other = allUsers.find(u => u.id === (isGiver ? r.to : r.from));
                 return (
-                  <div key={r.id} style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16, padding:"16px 20px", marginBottom:12, display:"flex", alignItems:"center", gap:14 }}>
+                  <div key={r.id} className="profile-activity-row" style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16, padding:"16px 20px", marginBottom:12, display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
                     <div style={{ fontSize:"1.4rem" }}>{isGiver ? "📤" : "📥"}</div>
-                    <div style={{ flex:1 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:"0.88rem" }}>{isGiver ? "You recognized " : "Recognized by "}<strong>{other?.name || "Unknown"}</strong></div>
-                      <div style={{ fontSize:"0.78rem", color:T.textMuted, marginTop:2 }}>{r.message.substring(0, 80)}...</div>
+                      <div style={{ fontSize:"0.78rem", color:T.textMuted, marginTop:2, overflow:"hidden", textOverflow:"ellipsis" }}>{r.message.substring(0, 80)}...</div>
                     </div>
-                    <TokenBadge amount={r.amount} />
-                    <span style={{ fontSize:"0.76rem", color:T.textDim }}>{timeAgo(r.timestamp)}</span>
+                    <div className="activity-meta" style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <TokenBadge amount={r.amount} />
+                      <span style={{ fontSize:"0.76rem", color:T.textDim, whiteSpace:"nowrap" }}>{timeAgo(r.timestamp)}</span>
+                    </div>
                   </div>
                 );
               })}
               <h3 style={{ fontSize:"1rem", fontWeight:600, marginBottom:14, marginTop:28 }}>Wallet & Blockchain</h3>
               <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16, padding:24 }}>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+                <div className="wallet-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
                   {[{ label:"Connected Wallet", value: user.walletAddress || "Not connected" }, { label:"Network", value:"Solana Mainnet", dot:true }, { label:"Token Standard", value:"SPL Token (KUDOS)" }, { label:"Transactions", value:`${recognitions.filter(r => r.from === user.id || r.to === user.id).length} on-chain` }].map((item, i) => (
                     <div key={i}>
                       <div style={{ fontSize:"0.72rem", color:T.textDim, textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 }}>{item.label}</div>
