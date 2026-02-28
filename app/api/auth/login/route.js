@@ -31,18 +31,30 @@ export async function POST(request) {
       .single();
 
     if (profileError || !profile) {
+      // Profile missing — create it from auth metadata
+      const meta = authData.user.user_metadata || {};
+      const fallbackName = meta.name || email.split('@')[0];
+      const fallbackProfile = {
+        id: authData.user.id,
+        name: fallbackName,
+        email,
+        role: meta.role || 'Team Member',
+        dept: meta.dept || 'General',
+        avatar: fallbackName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+        wallet_address: null,
+        balance: 200,
+        allowance: 500,
+      };
+
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .upsert(fallbackProfile)
+        .select()
+        .single();
+
       return NextResponse.json({
         message: 'Logged in',
-        user: {
-          id: authData.user.id,
-          name: authData.user.user_metadata?.name || email.split('@')[0],
-          email,
-          role: authData.user.user_metadata?.role || 'Team Member',
-          dept: authData.user.user_metadata?.dept || 'General',
-          avatar: (authData.user.user_metadata?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
-          balance: 200,
-          allowance: 500,
-        },
+        user: newProfile || fallbackProfile,
         token: authData.session?.access_token,
       });
     }
