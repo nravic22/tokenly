@@ -85,10 +85,10 @@ tokenly/
 │   │       └── signup/        # POST /api/auth/signup
 │   ├── components/
 │   │   └── Tokenly.js         # Main app component
+│   ├── icon.svg                # SVG favicon (◎ logo with gradient)
 │   ├── globals.css             # Global styles + responsive breakpoints
 │   ├── layout.js               # Root layout + metadata
 │   └── page.js                 # Home page entry
-├── public/                     # Static assets
 ├── .gitignore
 ├── next.config.js
 ├── package.json
@@ -100,6 +100,7 @@ tokenly/
 - [x] Supabase-backed auth API routes (login & signup)
 - [x] Session persistence across page refresh
 - [x] Mobile responsive layout with bottom nav and profile sign-out
+- [x] SVG favicon with branded ◎ logo
 - [ ] Solana wallet adapter (@solana/wallet-adapter-react)
 - [ ] Real SPL token transfers on devnet
 - [ ] The Graph integration for on-chain data indexing
