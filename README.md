@@ -22,9 +22,6 @@ A **Bonusly-like** peer-to-peer employee recognition platform powered by **Solan
 | Alex Chen | alex@company.io | alex1234 |
 | Maya Patel | maya@company.io | maya1234 |
 | Jordan Lee | jordan@company.io | jordan1234 |
-| Sofia Rodriguez | sofia@company.io | sofia1234 |
-| Kai Nakamura | kai@company.io | kai12345 |
-| Priya Sharma | priya@company.io | priya1234 |
 
 ## Getting Started
 

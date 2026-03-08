@@ -75,6 +75,17 @@ const THEMES = {
   },
 };
 
+// ─── API HELPER ──────────────────────────────────────────────────
+async function apiFetch(url, options = {}) {
+  const token = sessionStorage.getItem('tokenly-token');
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { ...options, headers });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
 // ─── SMALL COMPONENTS ──────────────────────────────────────────────
 function Avatar({ userId, size = 40, name }) {
   const label = name ? makeAvatar(name) : "?";
@@ -218,6 +229,9 @@ function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme }) {
             dept: data.user.dept || "General",
             walletAddress: data.user.wallet_address || null,
             password,
+            is_super_admin: data.is_super_admin || false,
+            token: data.token || null,
+            vendors: data.vendors || [],
           };
           setAllUsers(prev => {
             if (prev.find(x => x.email === u.email)) return prev;
@@ -520,6 +534,262 @@ function GiveRecognitionModal({ currentUser, allUsers, onClose, onSend, T }) {
   );
 }
 
+// ─── VENDOR MANAGEMENT (Super Admin) ──────────────────────────────
+function VendorManagement({ T }) {
+  const [vendors, setVendors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editVendor, setEditVendor] = useState(null);
+  const [expandedVendor, setExpandedVendor] = useState(null);
+  const [vendorMembers, setVendorMembers] = useState({});
+  const [error, setError] = useState('');
+
+  const fetchVendors = async () => {
+    try {
+      const data = await apiFetch('/api/admin/vendors');
+      setVendors(data.vendors || []);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchVendors(); }, []);
+
+  const fetchMembers = async (vendorId) => {
+    try {
+      const data = await apiFetch(`/api/admin/vendors/${vendorId}`);
+      setVendorMembers(prev => ({ ...prev, [vendorId]: data.members || [] }));
+    } catch {}
+  };
+
+  const toggleExpand = (vendorId) => {
+    if (expandedVendor === vendorId) {
+      setExpandedVendor(null);
+    } else {
+      setExpandedVendor(vendorId);
+      if (!vendorMembers[vendorId]) fetchMembers(vendorId);
+    }
+  };
+
+  const toggleBlock = async (vendor) => {
+    try {
+      await apiFetch(`/api/admin/vendors/${vendor.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: !vendor.is_active }),
+      });
+      fetchVendors();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const deleteVendor = async (vendorId) => {
+    try {
+      await apiFetch(`/api/admin/vendors/${vendorId}`, { method: 'DELETE' });
+      fetchVendors();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const inputStyle = { width:"100%", padding:"13px 16px", background:T.bgInput, border:`1px solid ${T.border}`, borderRadius:10, color:T.text, fontSize:"0.9rem", outline:"none", boxSizing:"border-box", fontFamily:"inherit" };
+  const labelStyle = { display:"block", fontSize:"0.78rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"1.5px", color:T.textMuted, marginBottom:8 };
+
+  return (
+    <div style={{ animation:"fadeUp 0.4s ease" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+        <div>
+          <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, letterSpacing:"-0.5px" }}>Vendor Management</h1>
+          <p style={{ color:T.textMuted, fontSize:"0.86rem", marginTop:4 }}>Manage all vendors, their logos, and access</p>
+        </div>
+        <button onClick={() => setShowAddModal(true)} style={{ padding:"12px 24px", background:T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:8, whiteSpace:"nowrap" }}>+ Add Vendor</button>
+      </div>
+
+      {error && <div style={{ background:`${T.red}15`, border:`1px solid ${T.red}30`, color:T.red, padding:"10px 14px", borderRadius:10, fontSize:"0.84rem", marginBottom:16 }}>{error}</div>}
+
+      {loading ? (
+        <div style={{ textAlign:"center", padding:40, color:T.textMuted }}>Loading vendors...</div>
+      ) : vendors.length === 0 ? (
+        <div style={{ textAlign:"center", padding:60, background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16 }}>
+          <div style={{ fontSize:"3rem", marginBottom:12 }}>🏢</div>
+          <h3 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.3rem", fontWeight:400, marginBottom:8 }}>No Vendors Yet</h3>
+          <p style={{ color:T.textMuted, fontSize:"0.88rem" }}>Add your first vendor to get started</p>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {vendors.map(vendor => (
+            <div key={vendor.id} style={{ background:T.bgCard, border:`1px solid ${vendor.is_active ? T.border : T.red + '40'}`, borderRadius:16, overflow:"hidden", transition:"all 0.2s" }}>
+              {/* Vendor Row */}
+              <div style={{ display:"flex", alignItems:"center", gap:16, padding:"20px 24px", cursor:"pointer" }} onClick={() => toggleExpand(vendor.id)}>
+                {/* Logo */}
+                <div style={{ width:48, height:48, borderRadius:12, background: vendor.logo_url ? 'transparent' : T.accentGlow, border:`1px solid ${T.border}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, overflow:"hidden" }}>
+                  {vendor.logo_url ? (
+                    <img src={vendor.logo_url} alt={vendor.name} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                  ) : (
+                    <span style={{ fontSize:"1.2rem", fontWeight:700, color:T.accent }}>{vendor.name.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:"1rem", fontWeight:600 }}>{vendor.name}</span>
+                    <span style={{ padding:"2px 10px", borderRadius:20, fontSize:"0.7rem", fontWeight:600, background: vendor.is_active ? `${T.teal}18` : `${T.red}18`, color: vendor.is_active ? T.teal : T.red, border:`1px solid ${vendor.is_active ? T.teal + '30' : T.red + '30'}` }}>
+                      {vendor.is_active ? 'Active' : 'Blocked'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize:"0.78rem", color:T.textDim, marginTop:2 }}>
+                    Created {new Date(vendor.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div style={{ display:"flex", gap:8 }} onClick={e => e.stopPropagation()}>
+                  <button onClick={() => setEditVendor(vendor)} style={{ padding:"8px 16px", borderRadius:8, border:`1px solid ${T.border}`, background:"transparent", color:T.textMuted, cursor:"pointer", fontSize:"0.78rem", fontFamily:"inherit", fontWeight:500 }}>Edit</button>
+                  <button onClick={() => toggleBlock(vendor)} style={{ padding:"8px 16px", borderRadius:8, border:`1px solid ${vendor.is_active ? T.orange + '50' : T.teal + '50'}`, background: vendor.is_active ? `${T.orange}12` : `${T.teal}12`, color: vendor.is_active ? T.orange : T.teal, cursor:"pointer", fontSize:"0.78rem", fontFamily:"inherit", fontWeight:600 }}>
+                    {vendor.is_active ? 'Block' : 'Unblock'}
+                  </button>
+                  <button onClick={() => { if (confirm('Are you sure you want to block this vendor?')) deleteVendor(vendor.id); }} style={{ padding:"8px 12px", borderRadius:8, border:`1px solid ${T.red}30`, background:`${T.red}08`, color:T.red, cursor:"pointer", fontSize:"0.82rem", fontFamily:"inherit" }}>✕</button>
+                </div>
+
+                {/* Expand arrow */}
+                <span style={{ color:T.textDim, fontSize:"0.9rem", transition:"transform 0.2s", transform: expandedVendor === vendor.id ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
+              </div>
+
+              {/* Expanded: Members List */}
+              {expandedVendor === vendor.id && (
+                <div style={{ borderTop:`1px solid ${T.border}`, padding:"16px 24px", background:T.bgInput }}>
+                  <div style={{ fontSize:"0.78rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"1.5px", color:T.textMuted, marginBottom:12 }}>
+                    Members
+                  </div>
+                  {!vendorMembers[vendor.id] ? (
+                    <div style={{ color:T.textDim, fontSize:"0.84rem", padding:8 }}>Loading...</div>
+                  ) : vendorMembers[vendor.id].length === 0 ? (
+                    <div style={{ color:T.textDim, fontSize:"0.84rem", padding:8 }}>No members yet</div>
+                  ) : (
+                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                      {vendorMembers[vendor.id].map(member => (
+                        <div key={member.id} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 14px", background:T.bgCard, borderRadius:10, border:`1px solid ${T.border}` }}>
+                          <Avatar userId={member.user?.id} size={32} name={member.user?.name} />
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:"0.86rem", fontWeight:500 }}>{member.user?.name || 'Unknown'}</div>
+                            <div style={{ fontSize:"0.74rem", color:T.textDim }}>{member.user?.email}</div>
+                          </div>
+                          <span style={{ padding:"3px 10px", borderRadius:20, fontSize:"0.7rem", fontWeight:600, background:T.accentGlow, color:T.accent, border:`1px solid ${T.accent}25` }}>
+                            {member.role === 'vendor_admin' ? 'Admin' : 'Employee'}
+                          </span>
+                          <span style={{ padding:"3px 10px", borderRadius:20, fontSize:"0.7rem", fontWeight:600, background: member.is_active ? `${T.teal}18` : `${T.red}18`, color: member.is_active ? T.teal : T.red }}>
+                            {member.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Vendor Modal */}
+      {showAddModal && (
+        <VendorFormModal
+          T={T}
+          title="Add New Vendor"
+          onClose={() => setShowAddModal(false)}
+          onSave={async ({ name, logo_url }) => {
+            await apiFetch('/api/admin/vendors', {
+              method: 'POST',
+              body: JSON.stringify({ name, logo_url }),
+            });
+            setShowAddModal(false);
+            fetchVendors();
+          }}
+          inputStyle={inputStyle}
+          labelStyle={labelStyle}
+        />
+      )}
+
+      {/* Edit Vendor Modal */}
+      {editVendor && (
+        <VendorFormModal
+          T={T}
+          title="Edit Vendor"
+          initial={editVendor}
+          onClose={() => setEditVendor(null)}
+          onSave={async ({ name, logo_url }) => {
+            await apiFetch(`/api/admin/vendors/${editVendor.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ name, logo_url }),
+            });
+            setEditVendor(null);
+            fetchVendors();
+          }}
+          inputStyle={inputStyle}
+          labelStyle={labelStyle}
+        />
+      )}
+    </div>
+  );
+}
+
+function VendorFormModal({ T, title, initial, onClose, onSave, inputStyle, labelStyle }) {
+  const [name, setName] = useState(initial?.name || '');
+  const [logoUrl, setLogoUrl] = useState(initial?.logo_url || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return setError('Vendor name is required');
+    setSaving(true);
+    setError('');
+    try {
+      await onSave({ name: name.trim(), logo_url: logoUrl.trim() || null });
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }} onClick={onClose}>
+      <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:20, padding:36, width:"100%", maxWidth:480, position:"relative" }} onClick={e => e.stopPropagation()}>
+        <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:T.gradient, borderRadius:"20px 20px 0 0" }} />
+        <button onClick={onClose} style={{ position:"absolute", top:16, right:16, background:"none", border:"none", color:T.textMuted, cursor:"pointer", fontSize:"1.2rem" }}>✕</button>
+
+        <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.5rem", fontWeight:400, marginBottom:24 }}>{title}</h2>
+
+        {error && <div style={{ background:`${T.red}15`, border:`1px solid ${T.red}30`, color:T.red, padding:"10px 14px", borderRadius:10, fontSize:"0.84rem", marginBottom:16 }}>{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom:20 }}>
+            <label style={labelStyle}>Vendor Name *</label>
+            <input style={inputStyle} type="text" placeholder="e.g. Acme Corp" value={name} onChange={e => setName(e.target.value)} autoFocus />
+          </div>
+          <div style={{ marginBottom:24 }}>
+            <label style={labelStyle}>Logo URL</label>
+            <input style={inputStyle} type="url" placeholder="https://example.com/logo.png" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} />
+            {logoUrl && (
+              <div style={{ marginTop:12, display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ width:48, height:48, borderRadius:12, border:`1px solid ${T.border}`, overflow:"hidden" }}>
+                  <img src={logoUrl} alt="Preview" style={{ width:"100%", height:"100%", objectFit:"cover" }} onError={e => e.target.style.display = 'none'} />
+                </div>
+                <span style={{ fontSize:"0.78rem", color:T.textDim }}>Logo preview</span>
+              </div>
+            )}
+          </div>
+          <button type="submit" disabled={saving} style={{ width:"100%", padding:"14px", background: saving ? T.textDim : T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor: saving ? "wait" : "pointer", fontFamily:"inherit", opacity: saving ? 0.7 : 1 }}>
+            {saving ? "Saving..." : initial ? "Update Vendor" : "Create Vendor"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── REDEEM MODAL ──────────────────────────────────────────────────
 function RedeemModal({ reward, balance, onClose, onRedeem, T }) {
   const [redeeming, setRedeeming] = useState(false);
@@ -556,6 +826,7 @@ function RedeemModal({ reward, balance, onClose, onRedeem, T }) {
 // ═══════════════════════════════════════════════════════════════════
 export default function Tokenly() {
   const [user, setUser] = useState(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [allUsers, setAllUsers] = useState([...DEMO_USERS]);
   const [page, setPage] = useState("feed");
@@ -577,14 +848,21 @@ export default function Tokenly() {
   useEffect(() => {
     const saved = sessionStorage.getItem('tokenly-user');
     if (saved) {
-      try { setUser(JSON.parse(saved)); } catch {}
+      try {
+        const parsed = JSON.parse(saved);
+        setUser(parsed);
+        setIsSuperAdmin(parsed.is_super_admin === true);
+      } catch {}
     }
     setSessionReady(true);
   }, []);
 
   const loginUser = (u) => {
     setUser(u);
+    setIsSuperAdmin(u.is_super_admin === true);
+    if (u.is_super_admin) setPage('vendors');
     sessionStorage.setItem('tokenly-user', JSON.stringify(u));
+    if (u.token) sessionStorage.setItem('tokenly-token', u.token);
   };
 
   const toggleTheme = () => {
@@ -644,6 +922,7 @@ export default function Tokenly() {
   const myGiven = recognitions.filter(r => r.from === user.id).reduce((sum, r) => sum + r.amount, 0);
 
   const navItems = [
+    ...(isSuperAdmin ? [{ id:"vendors", icon:"🏢", label:"Vendors" }] : []),
     { id:"feed", icon:"📣", label:"Recognition Feed" },
     { id:"give", icon:"🎁", label:"Give Kudos" },
     { id:"rewards", icon:"🏪", label:"Rewards Catalog" },
@@ -697,7 +976,7 @@ export default function Tokenly() {
                 </div>
               </div>
             </div>
-            <button onClick={() => { setUser(null); sessionStorage.removeItem('tokenly-user'); }} style={{ width:"100%", marginTop:10, padding:8, background:"transparent", border:`1px solid ${T.border}`, borderRadius:8, color:T.textMuted, cursor:"pointer", fontSize:"0.78rem", fontFamily:"inherit" }}>Sign Out</button>
+            <button onClick={() => { setUser(null); setIsSuperAdmin(false); setPage('feed'); sessionStorage.removeItem('tokenly-user'); sessionStorage.removeItem('tokenly-token'); }} style={{ width:"100%", marginTop:10, padding:8, background:"transparent", border:`1px solid ${T.border}`, borderRadius:8, color:T.textMuted, cursor:"pointer", fontSize:"0.78rem", fontFamily:"inherit" }}>Sign Out</button>
           </div>
         </aside>
 
@@ -713,6 +992,9 @@ export default function Tokenly() {
 
         {/* MAIN */}
         <main className="main-content" style={{ flex:1, marginLeft:240, padding:"24px 32px", maxWidth:900, paddingBottom:80, overflow:"hidden" }}>
+
+          {/* VENDORS (Super Admin) */}
+          {page === "vendors" && isSuperAdmin && <VendorManagement T={T} />}
 
           {/* FEED */}
           {page === "feed" && (
@@ -879,7 +1161,7 @@ export default function Tokenly() {
                   ))}
                 </div>
               </div>
-              <button className="mobile-sign-out" onClick={() => { setUser(null); sessionStorage.removeItem('tokenly-user'); }} style={{ display:"none", width:"100%", marginTop:28, marginBottom:60, padding:"14px 0", background:"transparent", border:`1px solid ${T.border}`, borderRadius:12, color:T.textMuted, cursor:"pointer", fontSize:"0.88rem", fontFamily:"inherit" }}>Sign Out</button>
+              <button className="mobile-sign-out" onClick={() => { setUser(null); setIsSuperAdmin(false); setPage('feed'); sessionStorage.removeItem('tokenly-user'); sessionStorage.removeItem('tokenly-token'); }} style={{ display:"none", width:"100%", marginTop:28, marginBottom:60, padding:"14px 0", background:"transparent", border:`1px solid ${T.border}`, borderRadius:12, color:T.textMuted, cursor:"pointer", fontSize:"0.88rem", fontFamily:"inherit" }}>Sign Out</button>
             </div>
           )}
         </main>

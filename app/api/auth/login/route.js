@@ -1,4 +1,5 @@
 import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { getUserVendors } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
@@ -23,7 +24,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    // 2. Fetch user profile (use admin client to bypass RLS)
+    // 2. Fetch user profile
     const db = supabaseAdmin || supabase;
     const { data: profile, error: profileError } = await db
       .from('profiles')
@@ -32,7 +33,6 @@ export async function POST(request) {
       .single();
 
     if (profileError || !profile) {
-      // Profile missing — create it from auth metadata
       const meta = authData.user.user_metadata || {};
       const fallbackName = meta.name || email.split('@')[0];
       const fallbackProfile = {
@@ -45,6 +45,7 @@ export async function POST(request) {
         wallet_address: null,
         balance: 200,
         allowance: 500,
+        platform_role: 'user',
       };
 
       const { data: newProfile } = await db
@@ -53,17 +54,35 @@ export async function POST(request) {
         .select()
         .single();
 
+      const userProfile = newProfile || fallbackProfile;
       return NextResponse.json({
         message: 'Logged in',
-        user: newProfile || fallbackProfile,
+        user: userProfile,
         token: authData.session?.access_token,
+        vendors: [],
       });
+    }
+
+    // 3. Check vendor memberships
+    const isSuperAdmin = profile.platform_role === 'super_admin';
+
+    // If not a super admin, check if the user belongs to any active vendor
+    let vendors = [];
+    if (!isSuperAdmin) {
+      vendors = await getUserVendors(profile.id);
+
+      if (vendors.length === 0) {
+        // User exists but has no active vendor memberships
+        // Allow login but flag it — the frontend can handle this
+      }
     }
 
     return NextResponse.json({
       message: 'Logged in',
       user: profile,
       token: authData.session?.access_token,
+      is_super_admin: isSuperAdmin,
+      vendors, // empty for super admins (they see all), populated for others
     });
 
   } catch (err) {
