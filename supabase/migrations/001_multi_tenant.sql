@@ -106,15 +106,25 @@ CREATE POLICY "Super admins manage roles" ON user_vendor_roles
     )
   );
 
+-- Helper function to check vendor admin (SECURITY DEFINER bypasses RLS to avoid recursion)
+CREATE OR REPLACE FUNCTION is_vendor_admin(p_user_id UUID, p_vendor_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM user_vendor_roles
+    WHERE user_id = p_user_id
+    AND vendor_id = p_vendor_id
+    AND role = 'vendor_admin'
+    AND is_active = true
+  );
+$$;
+
 CREATE POLICY "Vendor admins manage own vendor roles" ON user_vendor_roles
   FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM user_vendor_roles AS admin_role
-      WHERE admin_role.vendor_id = user_vendor_roles.vendor_id
-      AND admin_role.user_id = auth.uid()
-      AND admin_role.role = 'vendor_admin'
-      AND admin_role.is_active = true
-    )
+    is_vendor_admin(auth.uid(), vendor_id)
   );
 
 CREATE POLICY "Users read own roles" ON user_vendor_roles
