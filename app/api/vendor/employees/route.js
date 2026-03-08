@@ -45,10 +45,14 @@ export async function POST(request) {
   const { profile, error } = await getAuthUser(request);
   if (error) return error;
 
-  const { vendor_id, user_id, role } = await request.json();
+  const { vendor_id, user_id, email, role } = await request.json();
 
-  if (!vendor_id || !user_id) {
-    return NextResponse.json({ error: 'vendor_id and user_id are required' }, { status: 400 });
+  if (!vendor_id) {
+    return NextResponse.json({ error: 'vendor_id is required' }, { status: 400 });
+  }
+
+  if (!user_id && !email) {
+    return NextResponse.json({ error: 'user_id or email is required' }, { status: 400 });
   }
 
   if (!isSuperAdmin(profile)) {
@@ -56,12 +60,27 @@ export async function POST(request) {
     if (forbidden) return forbidden;
   }
 
+  // Resolve user_id from email if needed
+  let resolvedUserId = user_id;
+  if (!resolvedUserId && email) {
+    const { data: profileRows, error: lookupError } = await db
+      .from('profiles')
+      .select('id')
+      .eq('email', email.trim().toLowerCase())
+      .limit(1);
+
+    if (lookupError || !profileRows?.length) {
+      return NextResponse.json({ error: 'No user found with that email. They must sign up first.' }, { status: 404 });
+    }
+    resolvedUserId = profileRows[0].id;
+  }
+
   const memberRole = role === 'vendor_admin' ? 'vendor_admin' : 'employee';
 
   const { data: rows, error: dbError } = await db
     .from('user_vendor_roles')
     .upsert(
-      { user_id, vendor_id, role: memberRole, is_active: true },
+      { user_id: resolvedUserId, vendor_id, role: memberRole, is_active: true },
       { onConflict: 'user_id,vendor_id' }
     )
     .select();

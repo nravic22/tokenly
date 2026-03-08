@@ -444,7 +444,7 @@ function GiveRecognitionModal({ currentUser, allUsers, onClose, onSend, T }) {
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const filteredUsers = allUsers.filter(u => u.id !== currentUser.id && u.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredUsers = allUsers.filter(u => u.id !== currentUser.id && u.is_super_admin !== true && u.name.toLowerCase().includes(search.toLowerCase()));
 
   const handleSend = async () => {
     if (!to || !message) return;
@@ -527,6 +527,8 @@ function VendorManagement({ T }) {
   const [expandedVendor, setExpandedVendor] = useState(null);
   const [vendorMembers, setVendorMembers] = useState({});
   const [error, setError] = useState('');
+  const [editMemberData, setEditMemberData] = useState(null); // { member, vendorId }
+  const [showAddMember, setShowAddMember] = useState(null); // vendorId
 
   const fetchVendors = async () => {
     try {
@@ -575,6 +577,38 @@ function VendorManagement({ T }) {
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const updateMember = async (membershipId, updates, vendorId) => {
+    try {
+      await apiFetch(`/api/vendor/employees/${membershipId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      });
+      setEditMemberData(null);
+      fetchMembers(vendorId);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const removeMember = async (membershipId, vendorId) => {
+    if (!confirm('Remove this member from the vendor?')) return;
+    try {
+      await apiFetch(`/api/vendor/employees/${membershipId}`, { method: 'DELETE' });
+      fetchMembers(vendorId);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const addMemberToVendor = async (vendorId, memberEmail, memberRole) => {
+    await apiFetch('/api/vendor/employees', {
+      method: 'POST',
+      body: JSON.stringify({ vendor_id: vendorId, email: memberEmail, role: memberRole || 'employee' }),
+    });
+    setShowAddMember(null);
+    fetchMembers(vendorId);
   };
 
   const inputStyle = { width:"100%", padding:"13px 16px", background:T.bgInput, border:`1px solid ${T.border}`, borderRadius:10, color:T.text, fontSize:"0.9rem", outline:"none", boxSizing:"border-box", fontFamily:"inherit" };
@@ -651,8 +685,11 @@ function VendorManagement({ T }) {
               {/* Expanded: Members List */}
               {expandedVendor === vendor.id && (
                 <div style={{ borderTop:`1px solid ${T.border}`, padding:"16px 24px", background:T.bgInput }}>
-                  <div style={{ fontSize:"0.78rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"1.5px", color:T.textMuted, marginBottom:12 }}>
-                    Members
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                    <div style={{ fontSize:"0.78rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"1.5px", color:T.textMuted }}>
+                      Members
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); setShowAddMember(vendor.id); }} style={{ padding:"6px 14px", borderRadius:8, background:T.accentGlow, border:`1px solid ${T.accent}30`, color:T.accent, cursor:"pointer", fontSize:"0.74rem", fontWeight:600, fontFamily:"inherit" }}>+ Add Member</button>
                   </div>
                   {!vendorMembers[vendor.id] ? (
                     <div style={{ color:T.textDim, fontSize:"0.84rem", padding:8 }}>Loading...</div>
@@ -673,6 +710,10 @@ function VendorManagement({ T }) {
                           <span style={{ padding:"3px 10px", borderRadius:20, fontSize:"0.7rem", fontWeight:600, background: member.is_active ? `${T.teal}18` : `${T.red}18`, color: member.is_active ? T.teal : T.red }}>
                             {member.is_active ? 'Active' : 'Inactive'}
                           </span>
+                          <div style={{ display:"flex", gap:6 }}>
+                            <button onClick={(e) => { e.stopPropagation(); setEditMemberData({ member, vendorId: vendor.id }); }} style={{ padding:"5px 12px", borderRadius:8, border:`1px solid ${T.border}`, background:"transparent", color:T.textMuted, cursor:"pointer", fontSize:"0.74rem", fontFamily:"inherit" }}>Edit</button>
+                            <button onClick={(e) => { e.stopPropagation(); removeMember(member.id, vendor.id); }} style={{ padding:"5px 8px", borderRadius:8, border:`1px solid ${T.red}30`, background:`${T.red}08`, color:T.red, cursor:"pointer", fontSize:"0.78rem", fontFamily:"inherit" }}>✕</button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -721,6 +762,16 @@ function VendorManagement({ T }) {
           inputStyle={inputStyle}
           labelStyle={labelStyle}
         />
+      )}
+
+      {/* Add Member to Vendor Modal (Super Admin) */}
+      {showAddMember && (
+        <AddMemberModal T={T} onClose={() => setShowAddMember(null)} onSave={(memberEmail, memberRole) => addMemberToVendor(showAddMember, memberEmail, memberRole)} inputStyle={inputStyle} labelStyle={labelStyle} />
+      )}
+
+      {/* Edit Member Modal (Super Admin) */}
+      {editMemberData && (
+        <EditMemberModal T={T} member={editMemberData.member} onClose={() => setEditMemberData(null)} onSave={(updates) => updateMember(editMemberData.member.id, updates, editMemberData.vendorId)} inputStyle={inputStyle} labelStyle={labelStyle} />
       )}
     </div>
   );
@@ -817,6 +868,231 @@ function VendorFormModal({ T, title, initial, onClose, onSave, inputStyle, label
   );
 }
 
+// ─── MEMBER MANAGEMENT (Vendor Admin) ──────────────────────────────
+function MemberManagement({ user, T }) {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editMember, setEditMember] = useState(null);
+
+  // Find the vendor where this user is vendor_admin
+  const adminVendor = (user.vendors || []).find(v => v.role === 'vendor_admin');
+  const vendorId = adminVendor?.vendor_id;
+  const vendorName = adminVendor?.vendor_name || 'Your Vendor';
+
+  const fetchMembers = async () => {
+    if (!vendorId) { setLoading(false); return; }
+    try {
+      const data = await apiFetch(`/api/vendor/employees?vendor_id=${vendorId}`);
+      setMembers(data.employees || []);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchMembers(); }, [vendorId]);
+
+  const addMember = async (memberEmail, memberRole) => {
+    await apiFetch('/api/vendor/employees', {
+      method: 'POST',
+      body: JSON.stringify({ vendor_id: vendorId, email: memberEmail, role: memberRole || 'employee' }),
+    });
+    setShowAddModal(false);
+    fetchMembers();
+  };
+
+  const updateMember = async (membershipId, updates) => {
+    try {
+      await apiFetch(`/api/vendor/employees/${membershipId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      });
+      setEditMember(null);
+      fetchMembers();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const removeMember = async (membershipId) => {
+    if (!confirm('Remove this member from the vendor?')) return;
+    try {
+      await apiFetch(`/api/vendor/employees/${membershipId}`, { method: 'DELETE' });
+      fetchMembers();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const inputStyle = { width:"100%", padding:"13px 16px", background:T.bgInput, border:`1px solid ${T.border}`, borderRadius:10, color:T.text, fontSize:"0.9rem", outline:"none", boxSizing:"border-box", fontFamily:"inherit" };
+  const labelStyle = { display:"block", fontSize:"0.78rem", fontWeight:600, textTransform:"uppercase", letterSpacing:"1.5px", color:T.textMuted, marginBottom:8 };
+
+  if (!vendorId) {
+    return (
+      <div style={{ animation:"fadeUp 0.4s ease", textAlign:"center", padding:60 }}>
+        <div style={{ fontSize:"3rem", marginBottom:12 }}>👥</div>
+        <h3 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.3rem", fontWeight:400, marginBottom:8 }}>No Vendor Admin Access</h3>
+        <p style={{ color:T.textMuted, fontSize:"0.88rem" }}>You are not an admin of any vendor</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ animation:"fadeUp 0.4s ease" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+        <div>
+          <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", fontWeight:400, letterSpacing:"-0.5px" }}>Members</h1>
+          <p style={{ color:T.textMuted, fontSize:"0.86rem", marginTop:4 }}>{vendorName} — manage your team</p>
+        </div>
+        <button onClick={() => setShowAddModal(true)} style={{ padding:"12px 24px", background:T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:8, whiteSpace:"nowrap" }}>+ Add Member</button>
+      </div>
+
+      {error && <div style={{ background:`${T.red}15`, border:`1px solid ${T.red}30`, color:T.red, padding:"10px 14px", borderRadius:10, fontSize:"0.84rem", marginBottom:16 }}>{error}</div>}
+
+      {loading ? (
+        <div style={{ textAlign:"center", padding:40, color:T.textMuted }}>Loading members...</div>
+      ) : members.length === 0 ? (
+        <div style={{ textAlign:"center", padding:60, background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:16 }}>
+          <div style={{ fontSize:"3rem", marginBottom:12 }}>👥</div>
+          <h3 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.3rem", fontWeight:400, marginBottom:8 }}>No Members Yet</h3>
+          <p style={{ color:T.textMuted, fontSize:"0.88rem" }}>Add your first team member to get started</p>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {members.map(member => (
+            <div key={member.id} style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:14, padding:"16px 20px", display:"flex", alignItems:"center", gap:14, transition:"all 0.2s" }}>
+              <Avatar userId={member.user?.id} size={40} name={member.user?.name} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:"0.92rem", fontWeight:500 }}>{member.user?.name || 'Unknown'}</div>
+                <div style={{ fontSize:"0.78rem", color:T.textDim }}>{member.user?.email}</div>
+              </div>
+              <span style={{ padding:"4px 12px", borderRadius:20, fontSize:"0.72rem", fontWeight:600, background:T.accentGlow, color:T.accent, border:`1px solid ${T.accent}25` }}>
+                {member.role === 'vendor_admin' ? 'Admin' : 'Employee'}
+              </span>
+              <span style={{ padding:"4px 12px", borderRadius:20, fontSize:"0.72rem", fontWeight:600, background: member.is_active ? `${T.teal}18` : `${T.red}18`, color: member.is_active ? T.teal : T.red }}>
+                {member.is_active ? 'Active' : 'Inactive'}
+              </span>
+              <div style={{ display:"flex", gap:6 }}>
+                <button onClick={() => setEditMember(member)} style={{ padding:"6px 14px", borderRadius:8, border:`1px solid ${T.border}`, background:"transparent", color:T.textMuted, cursor:"pointer", fontSize:"0.76rem", fontFamily:"inherit" }}>Edit</button>
+                <button onClick={() => removeMember(member.id)} style={{ padding:"6px 10px", borderRadius:8, border:`1px solid ${T.red}30`, background:`${T.red}08`, color:T.red, cursor:"pointer", fontSize:"0.82rem", fontFamily:"inherit" }}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddModal && (
+        <AddMemberModal T={T} onClose={() => setShowAddModal(false)} onSave={addMember} inputStyle={inputStyle} labelStyle={labelStyle} />
+      )}
+
+      {/* Edit Member Modal */}
+      {editMember && (
+        <EditMemberModal T={T} member={editMember} onClose={() => setEditMember(null)} onSave={(updates) => updateMember(editMember.id, updates)} inputStyle={inputStyle} labelStyle={labelStyle} />
+      )}
+    </div>
+  );
+}
+
+function AddMemberModal({ T, onClose, onSave, inputStyle, labelStyle }) {
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('employee');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) return setError('Email is required');
+    setSaving(true);
+    setError('');
+    try {
+      await onSave(email.trim(), role);
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }} onClick={onClose}>
+      <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:20, padding:36, width:"100%", maxWidth:440, position:"relative" }} onClick={e => e.stopPropagation()}>
+        <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:T.gradient, borderRadius:"20px 20px 0 0" }} />
+        <button onClick={onClose} style={{ position:"absolute", top:16, right:16, background:"none", border:"none", color:T.textMuted, cursor:"pointer", fontSize:"1.2rem" }}>✕</button>
+        <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.5rem", fontWeight:400, marginBottom:24 }}>Add Member</h2>
+        {error && <div style={{ background:`${T.red}15`, border:`1px solid ${T.red}30`, color:T.red, padding:"10px 14px", borderRadius:10, fontSize:"0.84rem", marginBottom:16 }}>{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom:20 }}>
+            <label style={labelStyle}>Email *</label>
+            <input style={inputStyle} type="email" placeholder="employee@company.com" value={email} onChange={e => setEmail(e.target.value)} autoFocus />
+          </div>
+          <div style={{ marginBottom:24 }}>
+            <label style={labelStyle}>Role</label>
+            <select style={{ ...inputStyle, cursor:"pointer" }} value={role} onChange={e => setRole(e.target.value)}>
+              <option value="employee">Employee</option>
+              <option value="vendor_admin">Vendor Admin</option>
+            </select>
+          </div>
+          <button type="submit" disabled={saving} style={{ width:"100%", padding:"14px", background: saving ? T.textDim : T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor: saving ? "not-allowed" : "pointer", fontFamily:"inherit", opacity: saving ? 0.6 : 1 }}>
+            {saving ? "Adding..." : "Add Member"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditMemberModal({ T, member, onClose, onSave, inputStyle, labelStyle }) {
+  const [role, setRole] = useState(member.role || 'employee');
+  const [isActive, setIsActive] = useState(member.is_active !== false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await onSave({ role, is_active: isActive });
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }} onClick={onClose}>
+      <div style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:20, padding:36, width:"100%", maxWidth:440, position:"relative" }} onClick={e => e.stopPropagation()}>
+        <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:T.gradient, borderRadius:"20px 20px 0 0" }} />
+        <button onClick={onClose} style={{ position:"absolute", top:16, right:16, background:"none", border:"none", color:T.textMuted, cursor:"pointer", fontSize:"1.2rem" }}>✕</button>
+        <h2 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.5rem", fontWeight:400, marginBottom:8 }}>Edit Member</h2>
+        <p style={{ color:T.textMuted, fontSize:"0.86rem", marginBottom:24 }}>{member.user?.name || 'Unknown'} — {member.user?.email}</p>
+        {error && <div style={{ background:`${T.red}15`, border:`1px solid ${T.red}30`, color:T.red, padding:"10px 14px", borderRadius:10, fontSize:"0.84rem", marginBottom:16 }}>{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom:20 }}>
+            <label style={labelStyle}>Role</label>
+            <select style={{ ...inputStyle, cursor:"pointer" }} value={role} onChange={e => setRole(e.target.value)}>
+              <option value="employee">Employee</option>
+              <option value="vendor_admin">Vendor Admin</option>
+            </select>
+          </div>
+          <div style={{ marginBottom:24 }}>
+            <label style={labelStyle}>Status</label>
+            <select style={{ ...inputStyle, cursor:"pointer" }} value={isActive ? 'active' : 'inactive'} onChange={e => setIsActive(e.target.value === 'active')}>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <button type="submit" disabled={saving} style={{ width:"100%", padding:"14px", background: saving ? T.textDim : T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor: saving ? "not-allowed" : "pointer", fontFamily:"inherit", opacity: saving ? 0.6 : 1 }}>
+            {saving ? "Saving..." : "Update Member"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── REDEEM MODAL ──────────────────────────────────────────────────
 function RedeemModal({ reward, balance, onClose, onRedeem, T }) {
   const [redeeming, setRedeeming] = useState(false);
@@ -854,6 +1130,7 @@ function RedeemModal({ reward, balance, onClose, onRedeem, T }) {
 export default function Tokenly({ vendorSlug }) {
   const [user, setUser] = useState(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isVendorAdminUser, setIsVendorAdminUser] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [allUsers, setAllUsers] = useState([...DEMO_USERS]);
   const [page, setPage] = useState("feed");
@@ -899,6 +1176,7 @@ export default function Tokenly({ vendorSlug }) {
         const parsed = JSON.parse(saved);
         setUser(parsed);
         setIsSuperAdmin(parsed.is_super_admin === true);
+        setIsVendorAdminUser((parsed.vendors || []).some(v => v.role === 'vendor_admin'));
       } catch {}
     }
     setSessionReady(true);
@@ -907,6 +1185,7 @@ export default function Tokenly({ vendorSlug }) {
   const loginUser = (u) => {
     setUser(u);
     setIsSuperAdmin(u.is_super_admin === true);
+    setIsVendorAdminUser((u.vendors || []).some(v => v.role === 'vendor_admin'));
     if (u.is_super_admin) setPage('vendors');
     sessionStorage.setItem('tokenly-user', JSON.stringify(u));
     if (u.token) sessionStorage.setItem('tokenly-token', u.token);
@@ -970,6 +1249,7 @@ export default function Tokenly({ vendorSlug }) {
 
   const navItems = [
     ...(isSuperAdmin ? [{ id:"vendors", icon:"🏢", label:"Vendors" }] : []),
+    ...(isVendorAdminUser && !isSuperAdmin ? [{ id:"members", icon:"👥", label:"Members" }] : []),
     { id:"feed", icon:"📣", label:"Recognition Feed" },
     { id:"give", icon:"🎁", label:"Give Kudos" },
     { id:"rewards", icon:"🏪", label:"Rewards Catalog" },
@@ -993,8 +1273,28 @@ export default function Tokenly({ vendorSlug }) {
         {/* SIDEBAR */}
         <aside className="sidebar-desktop" style={{ width:240, background:T.bgCard, borderRight:`1px solid ${T.border}`, padding:"24px 0", display:"flex", flexDirection:"column", position:"fixed", top:0, left:0, bottom:0, zIndex:50 }}>
           <div style={{ padding:"0 24px 28px" }}>
-            <span style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.4rem", background:T.gradient, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>◎ Tokenly</span>
-            <div style={{ fontSize:"0.7rem", color:T.textDim, marginTop:2, letterSpacing:"1px", textTransform:"uppercase" }}>Powered by Solana</div>
+            {(() => {
+              const userVendor = (user.vendors || []).find(v => v.vendor_logo);
+              const vendorLogo = userVendor?.vendor_logo;
+              const vendorName = userVendor?.vendor_name;
+              if (vendorLogo) {
+                return (
+                  <>
+                    <div style={{ width:48, height:48, borderRadius:12, background:"#0B0E11", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", border:`1px solid ${T.border}` }}>
+                      <img src={vendorLogo} alt={vendorName || 'Vendor'} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                    </div>
+                    {vendorName && <div style={{ fontSize:"0.82rem", fontWeight:600, marginTop:8 }}>{vendorName}</div>}
+                    <div style={{ fontSize:"0.7rem", color:T.textDim, marginTop:2, letterSpacing:"1px", textTransform:"uppercase" }}>Powered by Solana</div>
+                  </>
+                );
+              }
+              return (
+                <>
+                  <span style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.4rem", background:T.gradient, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>◎ Tokenly</span>
+                  <div style={{ fontSize:"0.7rem", color:T.textDim, marginTop:2, letterSpacing:"1px", textTransform:"uppercase" }}>Powered by Solana</div>
+                </>
+              );
+            })()}
           </div>
           <nav style={{ flex:1 }}>
             {navItems.map(item => (
@@ -1042,6 +1342,9 @@ export default function Tokenly({ vendorSlug }) {
 
           {/* VENDORS (Super Admin) */}
           {page === "vendors" && isSuperAdmin && <VendorManagement T={T} />}
+
+          {/* MEMBERS (Vendor Admin) */}
+          {page === "members" && isVendorAdminUser && <MemberManagement user={user} T={T} />}
 
           {/* FEED */}
           {page === "feed" && (

@@ -9,6 +9,7 @@ A **SaaS** peer-to-peer employee recognition platform powered by **Solana SPL to
 ### Multi-Tenant SaaS Architecture
 - **Super Admin** — Manage all vendors, block/unblock access, view members
 - **Vendor Management** — Add vendors with name, logo, and unique URL slug
+- **Vendor Admin Member Management** — Vendor admins can list, add (by email), edit, and remove their team members
 - **Vendor-Branded Login** — Each vendor gets a branded sign-in page at `/v/{slug}`
 - **User-Vendor Linking** — Users who sign up from a vendor page are auto-linked to that vendor
 - **Multi-Vendor Users** — A single user can belong to multiple vendors with different roles
@@ -16,6 +17,7 @@ A **SaaS** peer-to-peer employee recognition platform powered by **Solana SPL to
 
 ### Recognition & Rewards
 - **Peer-to-Peer Recognition Feed** — Publicly celebrate teammate achievements
+- **Super Admin Exclusion** — Super admins are excluded from recognition recipient lists
 - **KUDOS Token System** — Send SPL tokens on Solana as recognition
 - **Rewards Catalog** — Redeem tokens for gift cards, swag, crypto, experiences
 - **Leaderboard & Analytics** — Track top contributors and recognition trends
@@ -39,7 +41,7 @@ Super Admin (platform-level)
 | Role | Capabilities |
 |------|-------------|
 | **Super Admin** | Create/edit/block vendors, view all members, manage platform |
-| **Vendor Admin** | Update company logo/name, add/remove employees |
+| **Vendor Admin** | Update company logo/name, add/edit/remove employees via Members page |
 | **Employee** | Send/receive recognition, redeem rewards, view profile |
 
 ## Vendor-Branded Login
@@ -174,7 +176,7 @@ tokenly/
 | `/api/admin/vendors/:id` | GET | Super Admin | Vendor details + members |
 | `/api/admin/vendors/:id` | PATCH | Super Admin | Update/block vendor |
 | `/api/admin/vendors/:id` | DELETE | Super Admin | Soft-block vendor |
-| `/api/vendor/employees` | GET/POST | Vendor Admin | List/add employees |
+| `/api/vendor/employees` | GET/POST | Vendor Admin | List/add employees (POST accepts email or user_id) |
 | `/api/vendor/employees/:id` | PATCH/DELETE | Vendor Admin | Update/remove employee |
 | `/api/vendor/profile` | PATCH | Vendor Admin | Update vendor logo/name |
 | `/api/vendor/public/:slug` | GET | Public | Vendor branding for login page |
@@ -195,7 +197,8 @@ tokenly/
 - [ ] Solana wallet adapter (@solana/wallet-adapter-react)
 - [ ] Real SPL token transfers on devnet
 - [ ] Email notifications
-- [ ] Vendor admin dashboard
+- [x] Vendor admin member management
+- [x] Super admin exclusion from recognition
 
 ## License
 
