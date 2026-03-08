@@ -105,18 +105,17 @@ function TokenBadge({ amount, T }) {
 }
 
 // ─── AUTH SCREEN ───────────────────────────────────────────────────
-function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme }) {
+function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme, vendorBranding }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [dept, setDept] = useState("");
-  const [verifyCode, setVerifyCode] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [walletConnecting, setWalletConnecting] = useState(false);
-  const [signupData, setSignupData] = useState(null);
 
   // ── Real signup via API (Supabase) with fallback to local ──
   const handleSubmit = async (e) => {
@@ -139,55 +138,31 @@ function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme }) {
         const data = await res.json();
 
         if (res.ok) {
-          // Supabase signup succeeded — go to verify
-          setSignupData(data.user);
-          setMode("verify");
+          setSuccess("Account created! Check your email for a confirmation link, then sign in.");
+          setMode("login");
+          setName(""); setPassword(""); setRole(""); setDept("");
         } else if (res.status === 503) {
-          // Supabase not configured — fallback to local signup
+          // Supabase not configured — fallback to local signup & auto-login
           const newUser = {
-            id: `u_${Date.now()}`,
-            name,
-            email,
-            password,
-            role: role || "Team Member",
-            avatar: makeAvatar(name),
-            dept: dept || "General",
-            walletAddress: null,
+            id: `u_${Date.now()}`, name, email, password,
+            role: role || "Team Member", avatar: makeAvatar(name),
+            dept: dept || "General", walletAddress: null,
           };
-          setSignupData(newUser);
-          setMode("verify");
+          setAllUsers(prev => [...prev, newUser]);
+          onAuth(newUser);
         } else {
           setError(data.error || "Signup failed");
         }
       } catch {
-        // Network error — fallback to local
+        // Network error — fallback to local signup & auto-login
         const newUser = {
-          id: `u_${Date.now()}`,
-          name,
-          email,
-          password,
-          role: role || "Team Member",
-          avatar: makeAvatar(name),
-          dept: dept || "General",
-          walletAddress: null,
+          id: `u_${Date.now()}`, name, email, password,
+          role: role || "Team Member", avatar: makeAvatar(name),
+          dept: dept || "General", walletAddress: null,
         };
-        setSignupData(newUser);
-        setMode("verify");
+        setAllUsers(prev => [...prev, newUser]);
+        onAuth(newUser);
       }
-      setLoading(false);
-
-    } else if (mode === "verify") {
-      if (verifyCode.length !== 6) return setError("Enter a 6-digit code");
-      // Accept any 6 digits for demo / Supabase handles real verification via email link
-      setLoading(true);
-      const newUser = signupData || {
-        id: `u_${Date.now()}`, name, email, password,
-        role: role || "Team Member", avatar: makeAvatar(name),
-        dept: dept || "General", walletAddress: null,
-      };
-      // Add to local users list
-      setAllUsers(prev => [...prev, newUser]);
-      onAuth(newUser);
       setLoading(false);
 
     } else {
@@ -272,62 +247,68 @@ function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme }) {
       <button onClick={setTheme} style={{ position:"absolute", top:20, right:20, width:40, height:40, borderRadius:12, border:`1px solid ${T.border}`, background:T.bgCard, color:T.text, cursor:"pointer", fontSize:"1.1rem", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s", zIndex:10 }} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>{theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}</button>
       <div style={{ width:"100%", maxWidth:440, background:T.bgCard, borderRadius:20, border:`1px solid ${T.border}`, padding:"48px 40px", position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:T.gradient }} />
-        <div style={{ textAlign:"center", marginBottom:8 }}>
-          <span style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", background:T.gradient, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>◎ Tokenly</span>
-        </div>
+
+        {/* Vendor branding or default Tokenly branding */}
+        {vendorBranding ? (
+          <div style={{ textAlign:"center", marginBottom:20 }}>
+            {vendorBranding.logo_url ? (
+              <img src={vendorBranding.logo_url} alt={vendorBranding.name} style={{ maxHeight:64, maxWidth:200, objectFit:"contain", marginBottom:12 }} />
+            ) : (
+              <div style={{ width:64, height:64, borderRadius:16, background:T.accentGlow, border:`1px solid ${T.border}`, display:"inline-flex", alignItems:"center", justifyContent:"center", marginBottom:12 }}>
+                <span style={{ fontSize:"1.8rem", fontWeight:700, color:T.accent }}>{vendorBranding.name.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
+            <div style={{ fontSize:"1.1rem", fontWeight:600, color:T.text }}>{vendorBranding.name}</div>
+            <div style={{ fontSize:"0.72rem", color:T.textDim, marginTop:4, letterSpacing:"1px", textTransform:"uppercase" }}>Powered by Tokenly</div>
+          </div>
+        ) : (
+          <div style={{ textAlign:"center", marginBottom:8 }}>
+            <span style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"1.8rem", background:T.gradient, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>◎ Tokenly</span>
+          </div>
+        )}
+
         <h1 style={{ fontFamily:"'Instrument Serif', Georgia, serif", fontSize:"2.4rem", fontWeight:400, letterSpacing:"-1px", marginBottom:6, textAlign:"center" }}>
-          {mode === "verify" ? "Verify Email" : mode === "signup" ? "Create Account" : "Welcome Back"}
+          {mode === "signup" ? "Create Account" : "Welcome Back"}
         </h1>
         <p style={{ color:T.textMuted, fontSize:"0.92rem", textAlign:"center", marginBottom:32, lineHeight:1.5 }}>
-          {mode === "verify" ? `We sent a 6-digit code to ${email}` : mode === "signup" ? "Join your team's recognition network" : "Recognize. Reward. Grow together."}
+          {mode === "signup" ? "Join your team's recognition network" : "Recognize. Reward. Grow together."}
         </p>
 
         {error && <div style={{ background:`${T.red}15`, border:`1px solid ${T.red}30`, color:T.red, padding:"10px 14px", borderRadius:10, fontSize:"0.84rem", marginBottom:16 }}>{error}</div>}
+        {success && <div style={{ background:`${T.teal}15`, border:`1px solid ${T.teal}30`, color:T.teal, padding:"10px 14px", borderRadius:10, fontSize:"0.84rem", marginBottom:16 }}>{success}</div>}
 
         <form onSubmit={handleSubmit}>
-          {mode === "verify" ? (
-            <div style={{ marginBottom:20 }}>
-              <label style={labelStyle}>Verification Code</label>
-              <input style={{ ...inputStyle, textAlign:"center", fontSize:"1.4rem", letterSpacing:"8px", fontFamily:"monospace" }} type="text" maxLength={6} placeholder="000000" value={verifyCode} onChange={e => setVerifyCode(e.target.value)} autoFocus />
-              <p style={{ fontSize:"0.78rem", color:T.textMuted, marginTop:8, textAlign:"center" }}>Demo: enter any 6 digits to continue</p>
-            </div>
-          ) : (
+          {mode === "signup" && (
             <>
-              {mode === "signup" && (
-                <>
-                  <div style={{ marginBottom:18 }}>
-                    <label style={labelStyle}>Full Name *</label>
-                    <input style={inputStyle} type="text" placeholder="Your full name" value={name} onChange={e => setName(e.target.value)} autoFocus />
-                  </div>
-                  <div style={{ display:"flex", gap:12, marginBottom:18 }}>
-                    <div style={{ flex:1 }}>
-                      <label style={labelStyle}>Role</label>
-                      <input style={inputStyle} type="text" placeholder="e.g. Designer" value={role} onChange={e => setRole(e.target.value)} />
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <label style={labelStyle}>Department</label>
-                      <input style={inputStyle} type="text" placeholder="e.g. Engineering" value={dept} onChange={e => setDept(e.target.value)} />
-                    </div>
-                  </div>
-                </>
-              )}
               <div style={{ marginBottom:18 }}>
-                <label style={labelStyle}>Email Address *</label>
-                <input style={inputStyle} type="email" placeholder="you@company.io" value={email} onChange={e => setEmail(e.target.value)} autoFocus={mode==="login"} />
+                <label style={labelStyle}>Full Name *</label>
+                <input style={inputStyle} type="text" placeholder="Your full name" value={name} onChange={e => setName(e.target.value)} autoFocus />
               </div>
-              <div style={{ marginBottom:24 }}>
-                <label style={labelStyle}>Password *</label>
-                <input style={inputStyle} type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+              <div style={{ display:"flex", gap:12, marginBottom:18 }}>
+                <div style={{ flex:1 }}>
+                  <label style={labelStyle}>Role</label>
+                  <input style={inputStyle} type="text" placeholder="e.g. Designer" value={role} onChange={e => setRole(e.target.value)} />
+                </div>
+                <div style={{ flex:1 }}>
+                  <label style={labelStyle}>Department</label>
+                  <input style={inputStyle} type="text" placeholder="e.g. Engineering" value={dept} onChange={e => setDept(e.target.value)} />
+                </div>
               </div>
             </>
           )}
+          <div style={{ marginBottom:18 }}>
+            <label style={labelStyle}>Email Address *</label>
+            <input style={inputStyle} type="email" placeholder="you@company.io" value={email} onChange={e => setEmail(e.target.value)} autoFocus={mode==="login"} />
+          </div>
+          <div style={{ marginBottom:24 }}>
+            <label style={labelStyle}>Password *</label>
+            <input style={inputStyle} type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+          </div>
           <button type="submit" disabled={loading} style={{ width:"100%", padding:"14px", background: loading ? T.textDim : T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor: loading ? "wait" : "pointer", fontFamily:"inherit", transition:"all 0.2s", letterSpacing:"0.3px", opacity: loading ? 0.7 : 1 }}>
-            {loading ? "⏳ Processing..." : mode === "verify" ? "Verify & Continue →" : mode === "signup" ? "Create Account →" : "Sign In →"}
+            {loading ? "⏳ Processing..." : mode === "signup" ? "Create Account →" : "Sign In →"}
           </button>
         </form>
 
-        {mode !== "verify" && (
-          <>
             <div style={{ display:"flex", alignItems:"center", gap:16, margin:"24px 0", color:T.textDim, fontSize:"0.8rem" }}>
               <div style={{ flex:1, height:1, background:T.border }} />
               <span>or</span>
@@ -340,7 +321,7 @@ function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme }) {
 
             <p style={{ textAlign:"center", marginTop:20, fontSize:"0.84rem", color:T.textMuted }}>
               {mode === "login" ? "Don't have an account? " : "Already have an account? "}
-              <span style={{ color:T.accent, cursor:"pointer", fontWeight:600 }} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}>
+              <span style={{ color:T.accent, cursor:"pointer", fontWeight:600 }} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setSuccess(""); }}>
                 {mode === "login" ? "Sign Up" : "Sign In"}
               </span>
             </p>
@@ -369,8 +350,6 @@ function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme }) {
                 </div>
               </div>
             )}
-          </>
-        )}
       </div>
     </div>
   );
@@ -639,8 +618,15 @@ function VendorManagement({ T }) {
                       {vendor.is_active ? 'Active' : 'Blocked'}
                     </span>
                   </div>
-                  <div style={{ fontSize:"0.78rem", color:T.textDim, marginTop:2 }}>
-                    Created {new Date(vendor.created_at).toLocaleDateString()}
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:2 }}>
+                    <span style={{ fontSize:"0.78rem", color:T.textDim }}>
+                      Created {new Date(vendor.created_at).toLocaleDateString()}
+                    </span>
+                    {vendor.slug && (
+                      <a href={`/v/${vendor.slug}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize:"0.74rem", color:T.accent, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:4, padding:"1px 8px", borderRadius:6, background:T.accentGlow, border:`1px solid ${T.accent}25` }}>
+                        /v/{vendor.slug} ↗
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -737,17 +723,41 @@ function VendorManagement({ T }) {
 
 function VendorFormModal({ T, title, initial, onClose, onSave, inputStyle, labelStyle }) {
   const [name, setName] = useState(initial?.name || '');
+  const [slug, setSlug] = useState(initial?.slug || '');
   const [logoUrl, setLogoUrl] = useState(initial?.logo_url || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [slugStatus, setSlugStatus] = useState(null); // null | 'checking' | 'available' | 'taken'
+  const slugTimerRef = useState(null);
+
+  const autoSlug = (val) => val.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+
+  const checkSlugUnique = (slugVal) => {
+    if (slugTimerRef[0]) clearTimeout(slugTimerRef[0]);
+    if (!slugVal || slugVal.length < 2) { setSlugStatus(null); return; }
+    // Skip check if editing and slug hasn't changed
+    if (initial?.slug === slugVal) { setSlugStatus('available'); return; }
+    setSlugStatus('checking');
+    slugTimerRef[0] = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/vendor/public/${slugVal}`);
+        setSlugStatus(res.ok ? 'taken' : 'available');
+      } catch {
+        setSlugStatus(null);
+      }
+    }, 400);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) return setError('Vendor name is required');
+    const finalSlug = slug.trim() || autoSlug(name);
+    if (!finalSlug) return setError('URL slug is required');
+    if (slugStatus === 'taken') return setError('This URL slug is already taken. Choose a different one.');
     setSaving(true);
     setError('');
     try {
-      await onSave({ name: name.trim(), logo_url: logoUrl.trim() || null });
+      await onSave({ name: name.trim(), logo_url: logoUrl.trim() || null, slug: finalSlug });
     } catch (err) {
       setError(err.message);
       setSaving(false);
@@ -767,7 +777,19 @@ function VendorFormModal({ T, title, initial, onClose, onSave, inputStyle, label
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom:20 }}>
             <label style={labelStyle}>Vendor Name *</label>
-            <input style={inputStyle} type="text" placeholder="e.g. Acme Corp" value={name} onChange={e => setName(e.target.value)} autoFocus />
+            <input style={inputStyle} type="text" placeholder="e.g. Acme Corp" value={name} onChange={e => { setName(e.target.value); if (!initial) { const s = autoSlug(e.target.value); setSlug(s); checkSlugUnique(s); } }} autoFocus />
+          </div>
+          <div style={{ marginBottom:20 }}>
+            <label style={labelStyle}>URL Slug *</label>
+            <div style={{ position:"relative" }}>
+              <input style={{ ...inputStyle, paddingRight: 90 }} type="text" placeholder="e.g. acme-corp" value={slug} onChange={e => { const s = autoSlug(e.target.value); setSlug(s); checkSlugUnique(s); }} />
+              {slugStatus && (
+                <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:"0.74rem", fontWeight:600, color: slugStatus === 'available' ? T.teal : slugStatus === 'taken' ? T.red : T.textDim }}>
+                  {slugStatus === 'checking' ? 'Checking...' : slugStatus === 'available' ? 'Available' : 'Taken'}
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize:"0.74rem", color:T.textDim, marginTop:6 }}>Login URL: {typeof window !== 'undefined' ? window.location.origin : ''}/v/{slug || autoSlug(name) || '...'}</p>
           </div>
           <div style={{ marginBottom:24 }}>
             <label style={labelStyle}>Logo URL</label>
@@ -781,7 +803,7 @@ function VendorFormModal({ T, title, initial, onClose, onSave, inputStyle, label
               </div>
             )}
           </div>
-          <button type="submit" disabled={saving} style={{ width:"100%", padding:"14px", background: saving ? T.textDim : T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor: saving ? "wait" : "pointer", fontFamily:"inherit", opacity: saving ? 0.7 : 1 }}>
+          <button type="submit" disabled={saving || slugStatus === 'taken' || slugStatus === 'checking'} style={{ width:"100%", padding:"14px", background: (saving || slugStatus === 'taken') ? T.textDim : T.gradient, color:"#fff", fontWeight:700, fontSize:"0.9rem", border:"none", borderRadius:12, cursor: (saving || slugStatus === 'taken') ? "not-allowed" : "pointer", fontFamily:"inherit", opacity: (saving || slugStatus === 'taken') ? 0.6 : 1 }}>
             {saving ? "Saving..." : initial ? "Update Vendor" : "Create Vendor"}
           </button>
         </form>
@@ -824,12 +846,13 @@ function RedeemModal({ reward, balance, onClose, onRedeem, T }) {
 // ═══════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════
-export default function Tokenly() {
+export default function Tokenly({ vendorSlug }) {
   const [user, setUser] = useState(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [allUsers, setAllUsers] = useState([...DEMO_USERS]);
   const [page, setPage] = useState("feed");
+  const [vendorBranding, setVendorBranding] = useState(null);
   const [recognitions, setRecognitions] = useState(INITIAL_RECOGNITIONS);
   const [showGiveModal, setShowGiveModal] = useState(false);
   const [redeemReward, setRedeemReward] = useState(null);
@@ -844,6 +867,17 @@ export default function Tokenly() {
     const saved = localStorage.getItem('tokenly-theme');
     if (saved && saved !== theme) setTheme(saved);
   }, []);
+
+  // Fetch vendor branding if on a vendor-specific login page
+  useEffect(() => {
+    if (!vendorSlug) return;
+    fetch(`/api/vendor/public/${vendorSlug}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.vendor) setVendorBranding(data.vendor);
+      })
+      .catch(() => {});
+  }, [vendorSlug]);
 
   useEffect(() => {
     const saved = sessionStorage.getItem('tokenly-user');
@@ -914,7 +948,7 @@ export default function Tokenly() {
   }, [recognitions, allUsers]);
 
   if (!sessionReady) return null;
-  if (!user) return <AuthScreen onAuth={loginUser} allUsers={allUsers} setAllUsers={setAllUsers} T={T} theme={theme} setTheme={toggleTheme} />;
+  if (!user) return <AuthScreen onAuth={loginUser} allUsers={allUsers} setAllUsers={setAllUsers} T={T} theme={theme} setTheme={toggleTheme} vendorBranding={vendorBranding} />;
 
   const rewardCategories = ["All", ...new Set(REWARDS_CATALOG.map(r => r.category))];
   const filteredRewards = rewardFilter === "All" ? REWARDS_CATALOG : REWARDS_CATALOG.filter(r => r.category === rewardFilter);

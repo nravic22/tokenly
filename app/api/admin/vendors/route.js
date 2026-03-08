@@ -32,15 +32,23 @@ export async function POST(request) {
   const forbidden = requireSuperAdmin(profile);
   if (forbidden) return forbidden;
 
-  const { name, logo_url } = await request.json();
+  const { name, logo_url, slug: customSlug } = await request.json();
 
   if (!name) {
     return NextResponse.json({ error: 'Vendor name is required' }, { status: 400 });
   }
 
+  // Auto-generate slug from name, or use custom slug
+  const slug = (customSlug || name)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
   const { data: vendor, error: dbError } = await db
     .from('vendors')
-    .insert({ name, logo_url: logo_url || null })
+    .insert({ name, logo_url: logo_url || null, slug })
     .select()
     .single();
 
