@@ -14,12 +14,13 @@ export async function GET(request, { params }) {
     const forbidden = requireSuperAdmin(profile);
     if (forbidden) return forbidden;
 
-    const { data: vendor, error: vendorError } = await db
+    const { data: rows, error: vendorError } = await db
       .from('vendors')
       .select('*')
       .eq('id', id)
-      .single();
+      .limit(1);
 
+    const vendor = rows?.[0];
     if (vendorError || !vendor) {
       return NextResponse.json({ error: vendorError?.message || 'Vendor not found' }, { status: 404 });
     }
@@ -65,12 +66,13 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
-    const { data: vendor, error: dbError } = await db
+    const { data: rows, error: dbError } = await db
       .from('vendors')
       .update(updates)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
+
+    const vendor = rows?.[0];
 
     if (dbError) {
       console.error('Update vendor error:', dbError);

@@ -53,11 +53,12 @@ export async function POST(request) {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-');
 
-    const { data: vendor, error: dbError } = await db
+    const { data: rows, error: dbError } = await db
       .from('vendors')
       .insert({ name, logo_url: logo_url || null, slug })
-      .select()
-      .single();
+      .select();
+
+    const vendor = rows?.[0];
 
     if (dbError) {
       console.error('Create vendor error:', dbError);

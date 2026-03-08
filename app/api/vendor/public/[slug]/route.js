@@ -16,15 +16,17 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  const { data: vendor, error } = await db
+  const { data: vendors, error } = await db
     .from('vendors')
     .select('id, name, slug, logo_url, is_active')
     .eq('slug', slug)
-    .single();
+    .limit(1);
 
-  if (error || !vendor) {
+  if (error || !vendors || vendors.length === 0) {
     return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
   }
+
+  const vendor = vendors[0];
 
   if (!vendor.is_active) {
     return NextResponse.json({ error: 'This organization is currently suspended' }, { status: 403 });

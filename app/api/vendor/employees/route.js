@@ -14,7 +14,6 @@ export async function GET(request) {
     return NextResponse.json({ error: 'vendor_id is required' }, { status: 400 });
   }
 
-  // Super admins can view any vendor's employees
   if (!isSuperAdmin(profile)) {
     const forbidden = await requireVendorAdmin(profile.id, vendorId);
     if (forbidden) return forbidden;
@@ -35,7 +34,7 @@ export async function GET(request) {
     .order('created_at', { ascending: false });
 
   if (dbError) {
-    return NextResponse.json({ error: 'Failed to fetch employees' }, { status: 500 });
+    return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
 
   return NextResponse.json({ employees: members || [] });
@@ -52,7 +51,6 @@ export async function POST(request) {
     return NextResponse.json({ error: 'vendor_id and user_id are required' }, { status: 400 });
   }
 
-  // Super admins can add to any vendor
   if (!isSuperAdmin(profile)) {
     const forbidden = await requireVendorAdmin(profile.id, vendor_id);
     if (forbidden) return forbidden;
@@ -60,18 +58,17 @@ export async function POST(request) {
 
   const memberRole = role === 'vendor_admin' ? 'vendor_admin' : 'employee';
 
-  const { data: membership, error: dbError } = await db
+  const { data: rows, error: dbError } = await db
     .from('user_vendor_roles')
     .upsert(
       { user_id, vendor_id, role: memberRole, is_active: true },
       { onConflict: 'user_id,vendor_id' }
     )
-    .select()
-    .single();
+    .select();
 
   if (dbError) {
-    return NextResponse.json({ error: 'Failed to add employee' }, { status: 500 });
+    return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ message: 'Employee added', membership }, { status: 201 });
+  return NextResponse.json({ message: 'Employee added', membership: rows?.[0] }, { status: 201 });
 }

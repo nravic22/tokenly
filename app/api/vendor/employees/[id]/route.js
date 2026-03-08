@@ -6,17 +6,17 @@ const db = supabaseAdmin || supabase;
 
 // PATCH /api/vendor/employees/:id — Update employee role or deactivate
 export async function PATCH(request, { params }) {
-  const { id } = await params; // membership id
+  const { id } = await params;
   const { profile, error } = await getAuthUser(request);
   if (error) return error;
 
-  // Fetch the membership to get vendor_id
-  const { data: membership } = await db
+  const { data: memberships } = await db
     .from('user_vendor_roles')
     .select('*')
     .eq('id', id)
-    .single();
+    .limit(1);
 
+  const membership = memberships?.[0];
   if (!membership) {
     return NextResponse.json({ error: 'Membership not found' }, { status: 404 });
   }
@@ -36,18 +36,17 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
   }
 
-  const { data: updated, error: dbError } = await db
+  const { data: rows, error: dbError } = await db
     .from('user_vendor_roles')
     .update(updates)
     .eq('id', id)
-    .select()
-    .single();
+    .select();
 
   if (dbError) {
-    return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 });
+    return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ message: 'Employee updated', membership: updated });
+  return NextResponse.json({ message: 'Employee updated', membership: rows?.[0] });
 }
 
 // DELETE /api/vendor/employees/:id — Remove employee from vendor
@@ -56,12 +55,13 @@ export async function DELETE(request, { params }) {
   const { profile, error } = await getAuthUser(request);
   if (error) return error;
 
-  const { data: membership } = await db
+  const { data: memberships } = await db
     .from('user_vendor_roles')
     .select('vendor_id')
     .eq('id', id)
-    .single();
+    .limit(1);
 
+  const membership = memberships?.[0];
   if (!membership) {
     return NextResponse.json({ error: 'Membership not found' }, { status: 404 });
   }
@@ -77,7 +77,7 @@ export async function DELETE(request, { params }) {
     .eq('id', id);
 
   if (dbError) {
-    return NextResponse.json({ error: 'Failed to remove employee' }, { status: 500 });
+    return NextResponse.json({ error: dbError.message }, { status: 500 });
   }
 
   return NextResponse.json({ message: 'Employee removed from vendor' });
