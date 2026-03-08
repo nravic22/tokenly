@@ -6,7 +6,7 @@ const db = supabaseAdmin || supabase;
 
 // PATCH /api/vendor/employees/:id — Update employee role or deactivate
 export async function PATCH(request, { params }) {
-  const { id } = await params;
+  const { id } = params;
   const { profile, error } = await getAuthUser(request);
   if (error) return error;
 
@@ -51,7 +51,7 @@ export async function PATCH(request, { params }) {
 
 // DELETE /api/vendor/employees/:id — Remove employee from vendor
 export async function DELETE(request, { params }) {
-  const { id } = await params;
+  const { id } = params;
   const { profile, error } = await getAuthUser(request);
   if (error) return error;
 

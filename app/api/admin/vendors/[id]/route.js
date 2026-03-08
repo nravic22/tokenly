@@ -7,7 +7,7 @@ const db = supabaseAdmin || supabase;
 // GET /api/admin/vendors/:id — Get vendor details + employees
 export async function GET(request, { params }) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { profile, error } = await getAuthUser(request);
     if (error) return error;
 
@@ -47,7 +47,7 @@ export async function GET(request, { params }) {
 // PATCH /api/admin/vendors/:id — Update vendor (name, logo, slug, block/unblock)
 export async function PATCH(request, { params }) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { profile, error } = await getAuthUser(request);
     if (error) return error;
 
@@ -92,7 +92,7 @@ export async function PATCH(request, { params }) {
 // DELETE /api/admin/vendors/:id — Soft delete (block) a vendor
 export async function DELETE(request, { params }) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { profile, error } = await getAuthUser(request);
     if (error) return error;
 

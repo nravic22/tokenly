@@ -133,7 +133,7 @@ function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme, vendorB
         const res = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password, role: role || 'Team Member', dept: dept || 'General' }),
+          body: JSON.stringify({ name, email, password, role: role || 'Team Member', dept: dept || 'General', vendor_id: vendorBranding?.id || null }),
         });
         const data = await res.json();
 
@@ -252,13 +252,18 @@ function AuthScreen({ onAuth, allUsers, setAllUsers, T, theme, setTheme, vendorB
         {vendorBranding ? (
           <div style={{ textAlign:"center", marginBottom:20 }}>
             {vendorBranding.logo_url ? (
-              <img src={vendorBranding.logo_url} alt={vendorBranding.name} style={{ maxHeight:64, maxWidth:200, objectFit:"contain", marginBottom:12 }} />
-            ) : (
-              <div style={{ width:64, height:64, borderRadius:16, background:T.accentGlow, border:`1px solid ${T.border}`, display:"inline-flex", alignItems:"center", justifyContent:"center", marginBottom:12 }}>
-                <span style={{ fontSize:"1.8rem", fontWeight:700, color:T.accent }}>{vendorBranding.name.charAt(0).toUpperCase()}</span>
+              <div style={{ background:"#0B0E11", borderRadius:20, padding:"14px 24px", display:"inline-flex", alignItems:"center", justifyContent:"center", marginBottom:12 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={vendorBranding.logo_url} alt={vendorBranding.name} width={200} height={64} style={{ maxHeight:64, maxWidth:200, objectFit:"contain", display:"block" }} />
               </div>
+            ) : (
+              <>
+                <div style={{ width:64, height:64, borderRadius:16, background:T.accentGlow, border:`1px solid ${T.border}`, display:"inline-flex", alignItems:"center", justifyContent:"center", marginBottom:12 }}>
+                  <span style={{ fontSize:"1.8rem", fontWeight:700, color:T.accent }}>{vendorBranding.name.charAt(0).toUpperCase()}</span>
+                </div>
+                <div style={{ fontSize:"1.1rem", fontWeight:600, color:T.text }}>{vendorBranding.name}</div>
+              </>
             )}
-            <div style={{ fontSize:"1.1rem", fontWeight:600, color:T.text }}>{vendorBranding.name}</div>
             <div style={{ fontSize:"0.72rem", color:T.textDim, marginTop:4, letterSpacing:"1px", textTransform:"uppercase" }}>Powered by Tokenly</div>
           </div>
         ) : (
@@ -871,12 +876,20 @@ export default function Tokenly({ vendorSlug }) {
   // Fetch vendor branding if on a vendor-specific login page
   useEffect(() => {
     if (!vendorSlug) return;
-    fetch(`/api/vendor/public/${vendorSlug}`)
-      .then(res => res.json())
+    let cancelled = false;
+    const controller = new AbortController();
+
+    fetch(`/api/vendor/public/${vendorSlug}`, { signal: controller.signal })
+      .then(res => {
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
+      })
       .then(data => {
-        if (data.vendor) setVendorBranding(data.vendor);
+        if (!cancelled && data.vendor) setVendorBranding(data.vendor);
       })
       .catch(() => {});
+
+    return () => { cancelled = true; controller.abort(); };
   }, [vendorSlug]);
 
   useEffect(() => {
@@ -1151,7 +1164,8 @@ export default function Tokenly({ vendorSlug }) {
                 <div style={{ flex:1, minWidth:0 }}>
                   <h2 style={{ fontSize:"1.3rem", fontWeight:600 }}>{user.name}</h2>
                   <div style={{ fontSize:"0.88rem", color:T.textMuted }}>{user.role} · {user.dept || "General"}</div>
-                  <div style={{ fontSize:"0.78rem", color:T.textDim, fontFamily:"monospace", marginTop:6, wordBreak:"break-all" }}>Wallet: {user.walletAddress || "Not connected"}</div>
+                  <div style={{ fontSize:"0.78rem", color:T.textDim, marginTop:4 }}>{user.email}</div>
+                  <div style={{ fontSize:"0.78rem", color:T.textDim, fontFamily:"monospace", marginTop:4, wordBreak:"break-all" }}>Wallet: {user.walletAddress || "Not connected"}</div>
                 </div>
                 <span style={{ padding:"6px 16px", borderRadius:20, fontSize:"0.9rem", fontWeight:600, background:`${T.teal}18`, color:T.teal, border:`1px solid ${T.teal}30`, fontFamily:"monospace" }}>◎ {balance} KUDOS</span>
               </div>

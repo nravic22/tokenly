@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const { name, email, password, role, dept } = await request.json();
+    const { name, email, password, role, dept, vendor_id } = await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email and password are required' }, { status: 400 });
@@ -26,11 +26,11 @@ export async function POST(request) {
       return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    // 2. Insert user profile into profiles table (use admin client to bypass RLS)
+    // 2. Insert user profile
     const db = supabaseAdmin || supabase;
     const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-    const { data: profile, error: profileError } = await db
+    const { data: profiles, error: profileError } = await db
       .from('profiles')
       .insert({
         id: authData.user.id,
@@ -43,20 +43,37 @@ export async function POST(request) {
         balance: 200,
         allowance: 500,
       })
-      .select()
-      .single();
+      .select();
 
     if (profileError) {
       console.error('Profile insert error:', profileError);
       return NextResponse.json({ error: 'Account created but profile setup failed. Try logging in.' }, { status: 500 });
     }
 
+    // 3. Link user to vendor if signing up from a vendor page
+    if (vendor_id) {
+      const { error: linkError } = await db
+        .from('user_vendor_roles')
+        .insert({
+          user_id: authData.user.id,
+          vendor_id,
+          role: 'employee',
+          is_active: true,
+        });
+
+      if (linkError) {
+        console.error('Vendor link error:', linkError);
+        // Don't fail signup — user is created, just not linked yet
+      }
+    }
+
     return NextResponse.json({
       message: 'Account created successfully',
-      user: profile,
+      user: profiles?.[0],
     });
 
   } catch (err) {
+    console.error('Signup exception:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

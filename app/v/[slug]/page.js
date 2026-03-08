@@ -1,9 +1,9 @@
 'use client';
 
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import Tokenly from '../../components/Tokenly';
 
-export default function VendorLoginPage({ params }) {
-  const { slug } = use(params);
+export default function VendorLoginPage() {
+  const { slug } = useParams();
   return <Tokenly vendorSlug={slug} />;
 }
